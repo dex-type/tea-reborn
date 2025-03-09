@@ -40,6 +40,8 @@ CTFProjectile_Rocket *CTFProjectile_Rocket::Create( CBaseEntity *pLauncher, cons
 		CTFWeaponBase *pWeapon = dynamic_cast< CTFWeaponBase * >( pLauncher );
 		bool bDirectHit = pWeapon ? ( pWeapon->GetWeaponID() == TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT ) : false;
 		pRocket->SetDirectHit( bDirectHit );
+		pRocket->SetMoveType(MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM);
+		pRocket->SetGravity(1.0f);
 	}
 
 	return pRocket;

@@ -20,6 +20,7 @@ extern ConVar sv_noclipaccelerate;
 extern ConVar sv_noclipspeed;
 extern ConVar sv_maxspeed;
 extern ConVar sv_accelerate;
+extern ConVar sv_q3accelerate;
 extern ConVar sv_airaccelerate;
 extern ConVar sv_wateraccelerate;
 extern ConVar sv_waterfriction;
@@ -50,4 +51,6 @@ extern ConVar r_AirboatViewDampenFreq;
 extern ConVar r_AirboatViewDampenDamp;
 extern ConVar r_AirboatViewZHeight;
 
+
+extern ConVar tea_bhop_dampen;
 #endif // MOVEVARS_SHARED_H

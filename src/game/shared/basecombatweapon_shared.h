@@ -602,7 +602,7 @@ public:
 	virtual const Vector&	GetViewmodelOffset() { return vec3_origin; }
 #endif // CLIENT_DLL
 
-	virtual bool			UsesCenterFireProjectile( void ) const { return false; }
+	virtual bool			UsesCenterFireProjectile( void ) const { return true; }
 
 private:
 	Activity				m_Activity;

@@ -24,7 +24,7 @@ class CTeamTrainWatcher;
 #define CAPTURE_CATCHUP_ALIVEPLAYERS	1
 
 #define MAX_CLIENT_AREAS				128
-#define MAX_AREA_CAPPERS				9
+#define MAX_AREA_CAPPERS				32	// MP NOTE: i sure hope noone takes advantage of this
 
 //-----------------------------------------------------------------------------
 // Purpose: An area entity that players must remain in in order to active another entity
@@ -88,6 +88,8 @@ public:
 
 	float GetCapTime() const { return m_flCapTime; }
 
+	float GetUnCapTime() const { return m_flUnCapTime; }
+
 protected:
 
 	virtual bool CaptureModeScalesWithPlayers() const;
@@ -124,9 +126,11 @@ private:
 	int		m_nOwningTeam;		//the team that has captured this point
 	int		m_nTeamInZone;		//if there's one team in the zone, this is it.
 	float	m_flCapTime;		//the total time it takes to capture the area, in seconds
+	float	m_flUnCapTime = 90;		//the total time it takes to uncapture the area, in seconds
 	float	m_fTimeRemaining;	//the time left in the capture
 	float	m_flLastReductionTime;
 	bool	m_bBlocked;
+	bool	m_bCanBlock = true;
 
 	struct perteamdata_t
 	{

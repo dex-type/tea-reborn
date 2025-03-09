@@ -272,7 +272,7 @@ int g_iScopeDustTextureID = 0;
 
 #endif
 
-ConVar tf_weapon_criticals( "tf_weapon_criticals", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Whether or not random crits are enabled" );
+ConVar tf_weapon_criticals( "tf_weapon_criticals", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Whether or not random crits are enabled" );
 
 //=============================================================================
 //
@@ -1180,7 +1180,7 @@ bool CTFWeaponBase::Holster( CBaseCombatWeapon *pSwitchingTo )
 	}
 #endif
 
-	m_iReloadMode.Set( TF_RELOAD_START );
+	//m_iReloadMode.Set( TF_RELOAD_START );
 
 #ifdef GAME_DLL
 	m_iHitsInTime = 0;
@@ -1190,6 +1190,8 @@ bool CTFWeaponBase::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 	return BaseClass::Holster( pSwitchingTo );
 }
+
+#define TEA_WEAPON_SWITCH_SPEED 0.1f
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1220,7 +1222,7 @@ bool CTFWeaponBase::Deploy( void )
 		if ( !pPlayer )
 			return false;
 
-		float flWeaponSwitchTime = 0.5f;
+		float flWeaponSwitchTime = TEA_WEAPON_SWITCH_SPEED;
 
 		// Overrides the anim length for calculating ready time.
 		float flDeployTimeMultiplier = 1.0f;
@@ -1267,7 +1269,7 @@ bool CTFWeaponBase::Deploy( void )
 		
 		flDeployTimeMultiplier = MAX( flDeployTimeMultiplier, 0.00001f );
 		float flDeployTime = flWeaponSwitchTime * flDeployTimeMultiplier;
-		float flPlaybackRate = Clamp( ( 1.f / flDeployTimeMultiplier ) * ( 0.67f / flWeaponSwitchTime ), -4.f, 12.f ); // clamp between the range that's defined in send table
+		float flPlaybackRate = Clamp( ( 1.f / flDeployTimeMultiplier ) * ( 0.67f / (flWeaponSwitchTime * 5) ), -4.f, 12.f ); // clamp between the range that's defined in send table
 		if ( pPlayer->GetViewModel(0) )
 		{
 			pPlayer->GetViewModel(0)->SetPlaybackRate( flPlaybackRate );
@@ -1282,7 +1284,7 @@ bool CTFWeaponBase::Deploy( void )
 		m_flNextPrimaryAttack = MAX( flOriginalPrimaryAttack, gpGlobals->curtime + flDeployTime );
 		m_flNextSecondaryAttack = MAX( flOriginalSecondaryAttack, m_flNextPrimaryAttack.Get() );
 
-		pPlayer->SetNextAttack( m_flNextPrimaryAttack );
+		//pPlayer->SetNextAttack( m_flNextPrimaryAttack );
 
 		m_flLastDeployTime = gpGlobals->curtime;
 
@@ -1980,14 +1982,7 @@ bool CTFWeaponBase::ReloadSingly( void )
 
 			if ( SendWeaponAnim( ACT_VM_RELOAD ) )
 			{
-				if ( GetWeaponID() == TF_WEAPON_GRENADELAUNCHER )
-				{
-					SetReloadTimer( GetTFWpnData().m_WeaponData[TF_WEAPON_PRIMARY_MODE].m_flTimeReload );
-				}
-				else
-				{
-					SetReloadTimer( SequenceDuration() );
-				}
+				SetReloadTimer( GetTFWpnData().m_WeaponData[TF_WEAPON_PRIMARY_MODE].m_flTimeReload );
 			}
 			else
 			{
@@ -2078,7 +2073,7 @@ void CTFWeaponBase::IncrementAmmo( void )
 			if ( pPlayer && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
 			{
 				m_iClip1 = MIN( ( m_iClip1 + 1 ), GetMaxClip1() );
-				pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
+				//pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );	// MP NOTE: We're using dread templar style ammo numbers, so this isn't needed.
 			}
 		}
 	}
@@ -2188,19 +2183,13 @@ bool CTFWeaponBase::DefaultReload( int iClipSize1, int iClipSize2, int iActivity
 
 	float flReloadTime;
 	// First, see if we have a reload animation
-	if ( SendWeaponAnim( iActivity ) )
+	// MP NOTE: too bad, no you don't. we want direct control over the reload time, so this'll be what we run with.
+	SendWeaponAnim(iActivity);
+	// No reload animation. Use the script time.
+	flReloadTime = GetTFWpnData().m_WeaponData[TF_WEAPON_PRIMARY_MODE].m_flTimeReload;  
+	if ( bReloadSecondary )
 	{
-		// We consider the reload finished 0.2 sec before the anim is, so that players don't keep accidentally aborting their reloads
-		flReloadTime = SequenceDuration() - 0.2;
-	}
-	else
-	{
-		// No reload animation. Use the script time.
-		flReloadTime = GetTFWpnData().m_WeaponData[TF_WEAPON_PRIMARY_MODE].m_flTimeReload;  
-		if ( bReloadSecondary )
-		{
-			flReloadTime = GetTFWpnData().m_WeaponData[TF_WEAPON_SECONDARY_MODE].m_flTimeReload;  
-		}
+		flReloadTime = GetTFWpnData().m_WeaponData[TF_WEAPON_SECONDARY_MODE].m_flTimeReload;  
 	}
 
 	SetReloadTimer( flReloadTime );
@@ -3014,6 +3003,18 @@ void CTFWeaponBase::OnPlayerKill( CTFPlayer *pVictim, const CTakeDamageInfo &inf
 			}
 		}
 	}
+}
+
+float CTFWeaponBase::GetInitialAfterburnDuration()
+{
+	float flAddBurningDamageType = 0;
+	CALL_ATTRIB_HOOK_FLOAT(flAddBurningDamageType, set_dmgtype_ignite);
+	if (flAddBurningDamageType != 0)
+	{
+		return flAddBurningDamageType;
+	}
+
+	return 0;
 }
 
 #else

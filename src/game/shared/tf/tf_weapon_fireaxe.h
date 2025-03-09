@@ -31,10 +31,6 @@ public:
 	CTFFireAxe() {}
 	virtual int			GetWeaponID( void ) const			{ return TF_WEAPON_FIREAXE; }
 
-#ifdef GAME_DLL
-	virtual float GetInitialAfterburnDuration() const OVERRIDE;
-#endif
-
 private:
 
 	CTFFireAxe( const CTFFireAxe & ) {}

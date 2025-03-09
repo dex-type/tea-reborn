@@ -23,6 +23,7 @@
 
 	#include "tf_projectile_flare.h"
 	#include "tf_projectile_rocket.h"
+	#include "tf_projectile_bouncyrocket.h"
 	#include "tf_projectile_arrow.h"
 	#include "tf_projectile_energy_ball.h"
 	#include "tf_weapon_grenade_pipebomb.h"
@@ -148,8 +149,10 @@ void CTFWeaponBaseGun::PrimaryAttack( void )
 	C_CTF_GameStats.Event_PlayerFiredWeapon( pPlayer, IsCurrentAttackACrit() );
 #endif
 
+	int wepID = GetWeaponID();
 	// Minigun has custom handling
-	if ( GetWeaponID() != TF_WEAPON_MINIGUN )
+	// MP NOTE: and spas too
+	if ( wepID != TF_WEAPON_MINIGUN && wepID != TF_WEAPON_SPAS && wepID != TF_WEAPON_BASEBALLGUN && wepID != TF_WEAPON_PISTOL_SCOUT )
 	{
 		// Set the weapon mode.
 		m_iWeaponMode = TF_WEAPON_PRIMARY_MODE;
@@ -269,84 +272,90 @@ CBaseEntity *CTFWeaponBaseGun::FireProjectile( CTFPlayer *pPlayer )
 
 	CBaseEntity *pProjectile = NULL;
 
-	// Anyone ever hear of a factory? This is a disgrace.
-	switch( iProjectile )
-	{
-	case TF_PROJECTILE_BULLET:
-		FireBullet( pPlayer );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+	if ( iProjectile == TF_PROJECTILE_BULLET ) {
+		FireBullet(pPlayer);
+		pPlayer->DoAnimationEvent(PLAYERANIMEVENT_ATTACK_PRIMARY);
+	}
+	else {
+		int iTargetLevel = max(1,m_pWeaponInfo->GetWeaponData(m_iWeaponMode).m_nBulletsPerShot);
+		for (int i = 0; i < iTargetLevel; i++) {
+			// Anyone ever hear of a factory? This is a disgrace.
+			switch( iProjectile )
+			{
+				case TF_PROJECTILE_ROCKET:
+				case TF_PROJECTILE_BOUNCYROCKET:
+					pProjectile = FireRocket( pPlayer, iProjectile );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
 
-	case TF_PROJECTILE_ROCKET:
-		pProjectile = FireRocket( pPlayer, iProjectile );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+				case TF_PROJECTILE_SYRINGE:
+					pProjectile = FireNail( pPlayer, iProjectile );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
 
-	case TF_PROJECTILE_SYRINGE:
-		pProjectile = FireNail( pPlayer, iProjectile );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+				case TF_PROJECTILE_FLARE:
+					pProjectile = FireFlare( pPlayer );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
 
-	case TF_PROJECTILE_FLARE:
-		pProjectile = FireFlare( pPlayer );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+				case TF_PROJECTILE_PIPEBOMB:
+				case TF_PROJECTILE_PIPEBOMB_REMOTE:
+				case TF_PROJECTILE_PIPEBOMB_PRACTICE:
+				case TF_PROJECTILE_CANNONBALL:
+				case TF_PROJECTILE_GRENADESHOTGUN:
+					pProjectile = FirePipeBomb( pPlayer, iProjectile );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
 
-	case TF_PROJECTILE_PIPEBOMB:
-	case TF_PROJECTILE_PIPEBOMB_REMOTE:
-	case TF_PROJECTILE_PIPEBOMB_PRACTICE:
-	case TF_PROJECTILE_CANNONBALL:
-		pProjectile = FirePipeBomb( pPlayer, iProjectile );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+				case TF_PROJECTILE_JAR:
+				case TF_PROJECTILE_JAR_MILK:
+				case TF_PROJECTILE_CLEAVER:
+				case TF_PROJECTILE_THROWABLE:
+				case TF_PROJECTILE_FESTIVE_JAR:
+				case TF_PROJECTILE_BREADMONSTER_JARATE:
+				case TF_PROJECTILE_BREADMONSTER_MADMILK:
+				case TF_PROJECTILE_JAR_GAS:
+					pProjectile = FireJar( pPlayer );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
+				case TF_PROJECTILE_ARROW:
+				case TF_PROJECTILE_HEALING_BOLT:
+				case TF_PROJECTILE_BUILDING_REPAIR_BOLT:
+				case TF_PROJECTILE_FESTIVE_ARROW:
+				case TF_PROJECTILE_FESTIVE_HEALING_BOLT:
+				case TF_PROJECTILE_GRAPPLINGHOOK:
+					pProjectile = FireArrow( pPlayer, ProjectileType_t( iProjectile ) );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					break;
 
-	case TF_PROJECTILE_JAR:
-	case TF_PROJECTILE_JAR_MILK:
-	case TF_PROJECTILE_CLEAVER:
-	case TF_PROJECTILE_THROWABLE:
-	case TF_PROJECTILE_FESTIVE_JAR:
-	case TF_PROJECTILE_BREADMONSTER_JARATE:
-	case TF_PROJECTILE_BREADMONSTER_MADMILK:
-	case TF_PROJECTILE_JAR_GAS:
-		pProjectile = FireJar( pPlayer );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
-	case TF_PROJECTILE_ARROW:
-	case TF_PROJECTILE_HEALING_BOLT:
-	case TF_PROJECTILE_BUILDING_REPAIR_BOLT:
-	case TF_PROJECTILE_FESTIVE_ARROW:
-	case TF_PROJECTILE_FESTIVE_HEALING_BOLT:
-	case TF_PROJECTILE_GRAPPLINGHOOK:
-		pProjectile = FireArrow( pPlayer, ProjectileType_t( iProjectile ) );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		break;
+				case TF_PROJECTILE_FLAME_ROCKET:
+					pProjectile = FireFlameRocket( pPlayer );
+					pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_SECONDARY );
+					break;
 
-	case TF_PROJECTILE_FLAME_ROCKET:
-		pProjectile = FireFlameRocket( pPlayer );
-		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_SECONDARY );
-		break;
+				case TF_PROJECTILE_ENERGY_BALL:
+					pProjectile = FireEnergyBall( pPlayer );
+					if ( ShouldPlayFireAnim() )
+					{
+						pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					}
+					break;
 
-	case TF_PROJECTILE_ENERGY_BALL:
-		pProjectile = FireEnergyBall( pPlayer );
-		if ( ShouldPlayFireAnim() )
-		{
-			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+				case TF_PROJECTILE_ENERGY_RING:
+					pProjectile = FireEnergyBall( pPlayer, true );
+					if ( ShouldPlayFireAnim() )
+					{
+						pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
+					}
+					break;
+
+				case TF_PROJECTILE_NONE:
+				default:
+					// do nothing!
+					Msg( "Weapon does not have a projectile type set\n" );
+					break;
+			}
 		}
-		break;
-
-	case TF_PROJECTILE_ENERGY_RING:
-		pProjectile = FireEnergyBall( pPlayer, true );
-		if ( ShouldPlayFireAnim() )
-		{
-			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_ATTACK_PRIMARY );
-		}
-		break;
-
-	case TF_PROJECTILE_NONE:
-	default:
-		// do nothing!
-		DevMsg( "Weapon does not have a projectile type set\n" );
-		break;
 	}
 
 	RemoveProjectileAmmo( pPlayer );
@@ -379,6 +388,7 @@ void CTFWeaponBaseGun::RemoveProjectileAmmo( CTFPlayer *pPlayer )
 	if ( m_iClip1 != -1 )
 	{
 		m_iClip1 -= GetAmmoPerShot();
+		pPlayer->RemoveAmmo(GetAmmoPerShot(), m_iPrimaryAmmoType);
 	}
 	else
 	{
@@ -530,11 +540,18 @@ CBaseEntity *CTFWeaponBaseGun::FireRocket( CTFPlayer *pPlayer, int iRocketType )
 	CTraceFilterSimple traceFilter( this, COLLISION_GROUP_NONE );
 	UTIL_TraceLine( vecEye, vecSrc, MASK_SOLID_BRUSHONLY, &traceFilter, &trace );
 
-	CTFProjectile_Rocket *pProjectile = CTFProjectile_Rocket::Create( this, trace.endpos, angForward, pPlayer, pPlayer );
+	CTFBaseRocket* pProjectile;
+	int type = GetWeaponProjectileType();
+	if (type == TF_PROJECTILE_ROCKET) {
+		pProjectile = CTFProjectile_Rocket::Create(this, trace.endpos, angForward, pPlayer, pPlayer);
+		dynamic_cast<CTFProjectile_Rocket*>(pProjectile)->SetCritical(IsCurrentAttackACrit());
+	}
+	else if (type == TF_PROJECTILE_BOUNCYROCKET) {
+		pProjectile = CTFProjectile_BouncyRocket::Create(this, trace.endpos, angForward, pPlayer, pPlayer);
+	}
 
 	if ( pProjectile )
 	{
-		pProjectile->SetCritical( IsCurrentAttackACrit() );
 		pProjectile->SetDamage( GetProjectileDamage() );
 	}
 
@@ -658,7 +675,7 @@ CBaseEntity *CTFWeaponBaseGun::FirePipeBomb( CTFPlayer *pPlayer, int iPipeBombTy
 		QAngle angSpread = RandomAngle( -flSpreadAngle, flSpreadAngle );
 		angSpread.z = 0.0f;
 		angEyes += angSpread;
-		DevMsg( "Fire bomb at %f %f %f\n", XYZ(angEyes) );
+		//DevMsg( "Fire bomb at %f %f %f\n", XYZ(angEyes) );	//what? why does it do this? what the fuck?
 	}
 
 	Vector vecForward, vecRight, vecUp;

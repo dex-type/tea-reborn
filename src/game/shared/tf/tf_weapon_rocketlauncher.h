@@ -23,9 +23,11 @@
 #ifdef CLIENT_DLL
 #define CTFRocketLauncher C_TFRocketLauncher
 #define CTFRocketLauncher_DirectHit C_TFRocketLauncher_DirectHit
+#define CTFFireworkLauncher C_TFFireworkLauncher
 #define CTFRocketLauncher_AirStrike C_TFRocketLauncher_AirStrike
 #define CTFRocketLauncher_Mortar C_TFRocketLauncher_Mortar
 #define CTFCrossbow C_TFCrossbow
+#define CTFBaseballGun C_TFBaseballGun
 #endif // CLIENT_DLL
 
 //=============================================================================
@@ -103,6 +105,25 @@ public:
 #endif
 
 	virtual int		GetWeaponID( void ) const			{ return TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT; }
+};
+
+// ------------------------------------------------------------------------------------------------------------------------
+class CTFFireworkLauncher : public CTFRocketLauncher
+{
+public:
+	DECLARE_CLASS( CTFFireworkLauncher, CTFRocketLauncher );
+	DECLARE_NETWORKCLASS(); 
+	DECLARE_PREDICTABLE();
+
+	// Server specific.
+#ifdef GAME_DLL
+	DECLARE_DATADESC();
+#endif
+
+	CTFFireworkLauncher();
+
+	virtual int		GetWeaponID( void ) const			{ return TF_WEAPON_FIREWORKLAUNCHER; }
+	virtual float	GetProjectileGravity(void) { return 1.0f; }
 };
 
 // ------------------------------------------------------------------------------------------------------------------------
@@ -194,6 +215,40 @@ public:
 
 private:
 	bool m_bMilkNextAttack;
+};
+
+#define TF_BASEBALL_MAX_CHARGE_TIME		1.0f
+
+// ------------------------------------------------------------------------------------------------------------------------
+class CTFBaseballGun : public CTFRocketLauncher, public ITFChargeUpWeapon
+{
+public:
+	DECLARE_CLASS(CTFBaseballGun, CTFRocketLauncher);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	// Server specific.
+#ifdef GAME_DLL
+	DECLARE_DATADESC();
+#endif
+
+	CTFBaseballGun();
+
+	virtual int		GetWeaponID(void) const { return TF_WEAPON_BASEBALLGUN; }
+	virtual float	GetProjectileGravity(void) { return 1.0f; }
+	virtual void	SecondaryAttack();
+	virtual bool CanCharge() { return m_iWeaponMode == TF_WEAPON_SECONDARY_MODE; }
+	virtual float GetChargeBeginTime(void) { return m_flChargeBeginTime; }
+	virtual float GetChargeMaxTime(void) { float flChargeTime = TF_BASEBALL_MAX_CHARGE_TIME;	CALL_ATTRIB_HOOK_FLOAT(flChargeTime, stickybomb_charge_rate)	return flChargeTime; }
+	virtual bool	Holster(CBaseCombatWeapon* pSwitchingTo);
+	virtual bool	Deploy(void);
+	virtual void	WeaponIdle(void);
+	virtual void	PrimaryAttack(void);
+	virtual float	GetProjectileSpeed(void);
+
+	float m_flChargeBeginTime;
+private:
+	bool	m_bFireNowDumbass;
 };
 
 #endif // TF_WEAPON_ROCKETLAUNCHER_H

@@ -679,21 +679,6 @@ void CTFMinigun::ActivatePushBackAttackMode( void )
 	pOwner->m_Shared.StartRageDrain();
 	EmitSound( "Heavy.Battlecry03" );
 }
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-float CTFMinigun::GetInitialAfterburnDuration() const
-{
-	int nRingOfFireWhileAiming = 0;
-	CALL_ATTRIB_HOOK_INT( nRingOfFireWhileAiming, ring_of_fire_while_aiming );
-	if ( nRingOfFireWhileAiming != 0 )
-	{
-		return 8.f;
-	}
-
-	return BaseClass::GetInitialAfterburnDuration();
-}
 #endif // GAME_DLL
 
 //-----------------------------------------------------------------------------

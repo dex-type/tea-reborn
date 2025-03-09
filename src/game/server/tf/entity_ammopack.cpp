@@ -83,6 +83,18 @@ bool CAmmoPack::MyTouch( CBasePlayer *pPlayer )
 			bSuccess = true;
 		}
 
+		int iMaxTertiary = pTFPlayer->GetMaxAmmo(TF_AMMO_TERTIARY);
+		if (pTFPlayer->GiveAmmo(ceil(iMaxTertiary * flPackRatio), TF_AMMO_TERTIARY, true, kAmmoSource_Pickup))
+		{
+			bSuccess = true;
+		}
+
+		int iMaxQuartary = pTFPlayer->GetMaxAmmo(TF_AMMO_QUARTARY);
+		if (pTFPlayer->GiveAmmo(ceil(iMaxQuartary * flPackRatio), TF_AMMO_QUARTARY, true, kAmmoSource_Pickup))
+		{
+			bSuccess = true;
+		}
+
 		if ( pTFPlayer->m_Shared.AddToSpyCloakMeter( 100.0f * flPackRatio ) )
 		{
 			bSuccess = true;

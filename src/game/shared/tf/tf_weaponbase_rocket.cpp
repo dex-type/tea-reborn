@@ -47,7 +47,7 @@ RecvPropEHandle( RECVINFO( m_hLauncher ) ),
 
 // Server specific.
 #else
-SendPropVector( SENDINFO( m_vInitialVelocity ), 12 /*nbits*/, 0 /*flags*/, -3000 /*low value*/, 3000 /*high value*/	),
+SendPropVector( SENDINFO( m_vInitialVelocity ), 32 /*nbits*/, 0 /*flags*/, -20000 /*low value*/, 20000 /*high value*/	),
 
 SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
 SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
@@ -161,7 +161,7 @@ void CTFBaseRocket::Spawn( void )
 
 	// Setup attributes.
 	m_takedamage = DAMAGE_NO;
-	SetGravity( 0.0f );
+	SetGravity( 1.0f );
 
 	// Setup the touch and think functions.
 	SetTouch( &CTFBaseRocket::RocketTouch );
@@ -170,6 +170,7 @@ void CTFBaseRocket::Spawn( void )
 	AddFlag( FL_GRENADE );
 
 	m_flDestroyableTime = gpGlobals->curtime + TF_ROCKET_DESTROYABLE_TIMER;
+	m_flDeathTime = gpGlobals->curtime + 0.5f;
 	m_bCritical = false;
 
 #endif
@@ -271,7 +272,7 @@ CTFBaseRocket *CTFBaseRocket::Create( CBaseEntity *pLauncher, const char *pszCla
 	Vector vecForward, vecRight, vecUp;
 	AngleVectors( vecAngles, &vecForward, &vecRight, &vecUp );
 
-	float flLaunchSpeed = 1100.0f;
+	float flLaunchSpeed = pRocket->GetSpeedCustom();
 	CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pLauncher, flLaunchSpeed, mult_projectile_speed );
 
 	// Hack: This attribute represents a bucket of attributes - one of which is projectile speed.
@@ -298,6 +299,7 @@ CTFBaseRocket *CTFBaseRocket::Create( CBaseEntity *pLauncher, const char *pszCla
 	}
 
 	CTFPlayer *pTFOwner = ToTFPlayer( pRocket->GetOwnerPlayer() );
+	Vector ownerVelocity = Vector(0, 0, 0);
 
 	if ( pTFOwner )
 	{
@@ -307,10 +309,11 @@ CTFBaseRocket *CTFBaseRocket::Create( CBaseEntity *pLauncher, const char *pszCla
 		{
 			flLaunchSpeed = 3000.f;
 		}
+		ownerVelocity = pOwner->GetAbsVelocity();
 	}
 
 	Vector vecVelocity = vecForward * flLaunchSpeed;
-	pRocket->SetAbsVelocity( vecVelocity );	
+	pRocket->SetAbsVelocity( vecVelocity + ownerVelocity );	
 	pRocket->SetupInitialTransmittedGrenadeVelocity( vecVelocity );
 
 	// Setup the initial angles.
@@ -342,10 +345,14 @@ void CTFBaseRocket::RocketTouch( CBaseEntity *pOther )
 		UTIL_Remove( this );
 		return;
 	}
-
+	Msg("got to touch func");
+	
 	trace_t trace;
 	memcpy( &trace, pTrace, sizeof( trace_t ) );
-	Explode( &trace, pOther );
+	if ( !ShouldNotDetonate() || pTrace->DidHitNonWorldEntity() )
+	{
+		Explode( &trace, pOther );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -416,14 +423,16 @@ void CTFBaseRocket::Destroy( bool bBlinkOut, bool bBreakRocket )
 //-----------------------------------------------------------------------------
 void CTFBaseRocket::Explode( trace_t *pTrace, CBaseEntity *pOther )
 {
-	if ( ShouldNotDetonate() )
+	// Save this entity as enemy, they will take 100% damage.
+	m_hEnemy = pOther;
+	CTFPlayer *pTarget = ToTFPlayer( GetEnemy() );
+
+	if ( ShouldNotDetonate() && !pTrace->DidHitNonWorldEntity() )
 	{
 		Destroy( true );
 		return;
 	}
-
-	// Save this entity as enemy, they will take 100% damage.
-	m_hEnemy = pOther;
+	Msg("got to explode func");
 
 	// Invisible.
 	SetModelName( NULL_STRING );
@@ -497,16 +506,18 @@ void CTFBaseRocket::Explode( trace_t *pTrace, CBaseEntity *pOther )
 
 	if ( pAttacker ) // No attacker, deal no damage. Otherwise we could potentially kill teammates.
 	{
-		CTFPlayer *pTarget = ToTFPlayer( GetEnemy() );
+		int isDirect = 0;
 		if ( pTarget )
 		{
 			// Rocket Specialist
 			CheckForStunOnImpact( pTarget );
 
 			RecordEnemyPlayerHit( pTarget, true );
+
+			isDirect = DMG_DIRECT;
 		}
 
-		CTakeDamageInfo info( this, pAttacker, GetOriginalLauncher(), vec3_origin, vecOrigin, GetDamage(), GetDamageType(), GetDamageCustom() );
+		CTakeDamageInfo info( this, pAttacker, GetOriginalLauncher(), vec3_origin, vecOrigin, GetDamage(), GetDamageType() | isDirect, GetDamageCustom() );
 		CTFRadiusDamageInfo radiusinfo( &info, vecOrigin, flRadius, NULL, TF_ROCKET_RADIUS_FOR_RJS, GetDamageForceScale() );
 		TFGameRules()->RadiusDamage( radiusinfo );
 	}
@@ -631,6 +642,15 @@ CBaseEntity *CTFBaseRocket::GetOwnerPlayer( void ) const
 		return pSentry->GetOwner();
 	}
 	return pOwner;
+}
+
+void CTFBaseRocket::Think() {
+	BaseClass::Think();
+	if (m_flDeathTime <= gpGlobals->curtime) {
+		Msg("Rocket timed out\n");
+		trace_t		tr;
+		Explode(&tr,NULL);
+	}
 }
 
 #endif

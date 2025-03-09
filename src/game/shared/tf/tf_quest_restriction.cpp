@@ -223,6 +223,7 @@ void GetValidParamsKeyFromEvent( const char *pszKeyName, const char *pszRestrict
 									if ( pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_PRIMARY
 									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_SECONDARY 
 									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_MELEE 
+									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_TERTIARY
 									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_PDA
 									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_PDA2
 									  || pItemDef->GetDefaultLoadoutSlot() == LOADOUT_POSITION_BUILDING )

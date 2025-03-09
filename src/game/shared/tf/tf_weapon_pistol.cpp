@@ -66,6 +66,36 @@ END_PREDICTION_DATA()
 LINK_ENTITY_TO_CLASS( tf_weapon_handgun_scout_primary, CTFPistol_ScoutPrimary );
 PRECACHE_WEAPON_REGISTER( tf_weapon_handgun_scout_primary );
 
+//-----------------------------------------------------------------------------
+// Purpose: If we're hitting both mouse two and mouse one, switch to secondary mode.
+// felt more reasonable to me than just m2, or a toggle like turbo overkill- this is supposed to be more like heavy's fists.
+//-----------------------------------------------------------------------------
+void CTFPistol_Scout::PrimaryAttack()
+{
+	if (!CanAttack())
+		return;
+
+	CTFPlayer* pOwner = ToTFPlayer(GetPlayerOwner());
+	if (!pOwner)
+		return;
+
+	// i should memorize how to use the ?: operator i keep forgetting
+	if ((pOwner->m_nButtons & IN_ATTACK2) && (pOwner->m_nButtons & IN_ATTACK)) {
+		m_iWeaponMode = TF_WEAPON_PRIMARY_MODE;
+	}
+	else {
+		m_iWeaponMode = TF_WEAPON_SECONDARY_MODE;
+	}
+
+	BaseClass::PrimaryAttack();
+}
+//-----------------------------------------------------------------------------
+// Purpose: Route back to the primary attack, because we handle secondary function in there.
+//-----------------------------------------------------------------------------
+void CTFPistol_Scout::SecondaryAttack()
+{
+	PrimaryAttack();
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

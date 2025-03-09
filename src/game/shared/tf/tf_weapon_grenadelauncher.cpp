@@ -74,6 +74,8 @@ PRECACHE_WEAPON_REGISTER( tf_weapon_grenadelauncher );
 
 CREATE_SIMPLE_WEAPON_TABLE( TFCannon, tf_weapon_cannon )
 
+CREATE_SIMPLE_WEAPON_TABLE( TFGrenadeShotgun, tf_weapon_grenadeshotgun )
+
 // Server specific.
 #ifndef CLIENT_DLL
 BEGIN_DATADESC( CTFGrenadeLauncher )
@@ -473,7 +475,9 @@ float CTFGrenadeLauncher::GetProjectileSpeed( void )
 	if ( pOwner && pOwner->m_Shared.GetCarryingRuneType() == RUNE_PRECISION )
 		return 3000.f;
 
-	float flLaunchSpeed = TF_GRENADE_LAUNCER_MIN_VEL;
+	float flLaunchSpeed = m_pWeaponInfo->m_WeaponData[m_iWeaponMode].m_flProjectileSpeed;
+	if (flLaunchSpeed == 0)
+		flLaunchSpeed = TF_GRENADE_LAUNCER_MIN_VEL;
 	CALL_ATTRIB_HOOK_FLOAT( flLaunchSpeed, mult_projectile_speed );
 	return flLaunchSpeed;
 }

@@ -1868,7 +1868,7 @@ void CTFFlameThrower::PlayDeflectionSound( bool bPlayer )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-float CTFFlameThrower::GetInitialAfterburnDuration() const
+float CTFFlameThrower::GetInitialAfterburnDuration()
 {
 	return tf_flamethrower_initial_afterburn_duration;
 }
@@ -1876,7 +1876,7 @@ float CTFFlameThrower::GetInitialAfterburnDuration() const
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-float CTFFlameThrower::GetAfterburnRateOnHit() const
+float CTFFlameThrower::GetAfterburnRateOnHit()
 {
 	float flAfterburnDurationScale = 1.f;
 	CALL_ATTRIB_HOOK_FLOAT( flAfterburnDurationScale, afterburn_duration_mult );

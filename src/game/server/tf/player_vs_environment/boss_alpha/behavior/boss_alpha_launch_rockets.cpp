@@ -73,7 +73,7 @@ ActionResult< CBossAlpha >	CBossAlphaLaunchRockets::Update( CBossAlpha *me, floa
 		{
 			float range = me->GetRangeTo( m_target->EyePosition() );
 
-			const float rocketSpeed = me->GetRocketAimError() * 1100.0f; // 2000.0f; // 1100.0f;  nerfing accuracy
+			const float rocketSpeed = me->GetRocketAimError() * 3000.0f; // 2000.0f; // 1100.0f;  nerfing accuracy
 			float flightTime = range / rocketSpeed;
 
 			Vector aimSpot = m_target->EyePosition() + m_target->GetAbsVelocity() * flightTime;

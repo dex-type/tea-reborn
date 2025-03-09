@@ -149,8 +149,8 @@ public:
 	virtual bool	DeflectEntity( CBaseEntity *pTarget, CTFPlayer *pOwner, Vector &vecForward ) OVERRIDE;
 	virtual void	PlayDeflectionSound( bool bPlayer ) OVERRIDE;
 
-	virtual float	GetInitialAfterburnDuration() const OVERRIDE;
-	virtual float	GetAfterburnRateOnHit() const OVERRIDE;
+	virtual float	GetInitialAfterburnDuration();
+	virtual float	GetAfterburnRateOnHit();
 
 #endif
 

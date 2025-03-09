@@ -17,6 +17,7 @@
 #define CTFSniperRifleDecap C_TFSniperRifleDecap
 #define CTFSniperRifleClassic C_TFSniperRifleClassic
 #define CTFSniperRifleRevolver C_TFSniperRifleRevolver
+#define CTFRifle C_TFRifle
 #define CSniperDot C_SniperDot
 #endif
 
@@ -270,6 +271,16 @@ private:
 	void ManageChargeBeam( void );
 	HPARTICLEFFECT	m_pChargedEffect;
 #endif
+};
+
+class CTFRifle : public CTFSniperRifle
+{
+public:
+	DECLARE_CLASS(CTFSniperRifleDecap, CTFRifle);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual int	GetWeaponID(void) const { return TF_WEAPON_RIFLE; }
 };
 
 

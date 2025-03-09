@@ -1702,7 +1702,7 @@ void CGameMovement::FinishGravity( void )
 // Input  : wishdir - 
 //			accel - 
 //-----------------------------------------------------------------------------
-void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel )
+void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel, float freeroom )
 {
 	int i;
 	float addspeed, accelspeed, currentspeed;
@@ -1717,8 +1717,8 @@ void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel
 		return;
 
 	// Cap speed
-	if ( wishspd > GetAirSpeedCap() )
-		wishspd = GetAirSpeedCap();
+	if ( wishspd > freeroom )
+		wishspd = freeroom;
 
 	// Determine veer amount
 	currentspeed = mv->m_vecVelocity.Dot(wishdir);
@@ -1785,7 +1785,7 @@ void CGameMovement::AirMove( void )
 		wishspeed = mv->m_flMaxSpeed;
 	}
 	
-	AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
+	AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat(), 30 );
 
 	// Add in any base velocity to the current velocity.
 	VectorAdd(mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
@@ -4758,7 +4758,7 @@ void CGameMovement::PerformFlyCollisionResolution( trace_t &pm, Vector &move )
 		}
 		else
 		{
-			VectorScale (mv->m_vecVelocity, (1.0 - pm.fraction) * gpGlobals->frametime * 0.9, move);
+			VectorScale (mv->m_vecVelocity, (1.0f - pm.fraction) * gpGlobals->frametime, move);
 			PushEntity( move, &pm );
 		}
 		VectorSubtract( mv->m_vecVelocity, base, mv->m_vecVelocity );

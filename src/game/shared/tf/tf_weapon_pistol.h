@@ -63,6 +63,8 @@ public:
 	DECLARE_PREDICTABLE();
 
 	virtual int		GetWeaponID( void ) const			{ return TF_WEAPON_PISTOL_SCOUT; }
+	virtual void	PrimaryAttack(void);
+	virtual void	SecondaryAttack(void);
 };
 
 class CTFPistol_ScoutPrimary : public CTFPistol_Scout

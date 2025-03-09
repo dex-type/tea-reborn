@@ -71,7 +71,7 @@ CTFParticleCannon::CTFParticleCannon() : CTFRocketLauncher()
 //-----------------------------------------------------------------------------
 float CTFParticleCannon::GetProjectileSpeed( void )
 {
-	return 1100.f;
+	return 3000.f;
 }
 
 //-----------------------------------------------------------------------------

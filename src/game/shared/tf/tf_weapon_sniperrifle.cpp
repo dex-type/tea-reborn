@@ -126,6 +126,19 @@ LINK_ENTITY_TO_CLASS( tf_weapon_sniperrifle_classic, CTFSniperRifleClassic );
 PRECACHE_WEAPON_REGISTER( tf_weapon_sniperrifle_classic );
 //=============================================================================
 
+//=============================================================================
+
+IMPLEMENT_NETWORKCLASS_ALIASED(TFRifle, DT_TFRifle)
+
+BEGIN_NETWORK_TABLE(CTFRifle, DT_TFRifle)
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA(CTFRifle)
+END_PREDICTION_DATA()
+
+LINK_ENTITY_TO_CLASS(tf_weapon_rifle, CTFRifle);
+PRECACHE_WEAPON_REGISTER(tf_weapon_rifle);
+
 
 //=============================================================================
 //

@@ -137,11 +137,15 @@ void CTFAmmoPack::InitAmmoPack( CTFPlayer *pPlayer, CTFWeaponBase *pWeapon, int 
 		int iPrimary = Max( 5, pPlayer->GetAmmoCount( TF_AMMO_PRIMARY ) );
 		int iSecondary = Max( 5, pPlayer->GetAmmoCount( TF_AMMO_SECONDARY ) );
 		int iMetal = Clamp( pPlayer->GetAmmoCount( TF_AMMO_METAL ), 5 , 100 );
+		int iTertiary = Max(5, pPlayer->GetAmmoCount(TF_AMMO_TERTIARY));
+		int iQuartary = Max(5, pPlayer->GetAmmoCount(TF_AMMO_QUARTARY));
 
 		// Fill up the ammo pack.
 		GiveAmmo( iPrimary, TF_AMMO_PRIMARY );			// Gets recalculated in PackTouch
 		GiveAmmo( iSecondary, TF_AMMO_SECONDARY );		// Gets recalculated in PackTouch
 		GiveAmmo( iMetal, TF_AMMO_METAL );
+		GiveAmmo( iTertiary, TF_AMMO_TERTIARY );			// Gets recalculated in PackTouch
+		GiveAmmo( iQuartary, TF_AMMO_QUARTARY );		// Gets recalculated in PackTouch
 		SetHealthInstead( pWeapon && pWeapon->GetWeaponID() == TF_WEAPON_LUNCHBOX && pPlayer->IsPlayerClass( TF_CLASS_HEAVYWEAPONS ) );
 	}
 	else
@@ -349,6 +353,9 @@ void CTFAmmoPack::PackTouch( CBaseEntity *pOther )
 
 	int iMaxSecondary = pPlayer->GetMaxAmmo(TF_AMMO_SECONDARY);
 	GiveAmmo( ceil( iMaxSecondary * m_flAmmoRatio ), TF_AMMO_SECONDARY );
+
+	int iMaxTertiary = pPlayer->GetMaxAmmo(TF_AMMO_TERTIARY);
+	GiveAmmo(ceil(iMaxTertiary * m_flAmmoRatio), TF_AMMO_TERTIARY);
 
 	int iAmmoTaken = 0;
 

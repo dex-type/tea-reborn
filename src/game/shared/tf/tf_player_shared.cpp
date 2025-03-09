@@ -147,9 +147,9 @@ CON_COMMAND_F( tf_add_bombhead, "Add Merasmus Bomb Head Condition", 0 )
 		//playerVector[i]->m_Shared.AddCond( TF_COND_HALLOWEEN_BOMB_HEAD, 7 );
 	}
 }
-
-ConVar tf_debug_bullets( "tf_debug_bullets", "0", FCVAR_DEVELOPMENTONLY, "Visualize bullet traces." );
 #endif // _DEBUG
+
+ConVar tf_debug_bullets( "tf_debug_bullets", "0", FCVAR_CHEAT, "Visualize bullet traces." );
 
 ConVar tf_damage_events_track_for( "tf_damage_events_track_for", "30",  FCVAR_DEVELOPMENTONLY );
 
@@ -2856,70 +2856,66 @@ void CTFPlayerShared::ConditionGameRulesThink( void )
 		}
 		else if ( gpGlobals->curtime >= m_flFlameBurnTime )
 		{
-			// Burn the player (if not pyro, who does not take persistent burning damage)
-			if ( ( TF_CLASS_PYRO != m_pOuter->GetPlayerClass()->GetClassIndex() ) || InCond( TF_COND_BURNING_PYRO ) )
+			float flBurnDamage = TF_BURNING_DMG;
+			int nKillType = TF_DMG_CUSTOM_BURNING;
+
+			if ( m_hBurnWeapon )
 			{
-				float flBurnDamage = TF_BURNING_DMG;
-				int nKillType = TF_DMG_CUSTOM_BURNING;
+				CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( m_hBurnWeapon, flBurnDamage, mult_wpn_burndmg );
 
-				if ( m_hBurnWeapon )
+				if ( m_hBurnWeapon.Get()->GetWeaponID() == TF_WEAPON_FLAREGUN )
 				{
-					CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( m_hBurnWeapon, flBurnDamage, mult_wpn_burndmg );
-
-					if ( m_hBurnWeapon.Get()->GetWeaponID() == TF_WEAPON_FLAREGUN )
-					{
-						nKillType = TF_DMG_CUSTOM_BURNING_FLARE;
-					}
-					else if ( m_hBurnWeapon.Get()->GetWeaponID() == TF_WEAPON_COMPOUND_BOW )
-					{
-						nKillType = TF_DMG_CUSTOM_BURNING_ARROW;
-					}
+					nKillType = TF_DMG_CUSTOM_BURNING_FLARE;
 				}
+				else if ( m_hBurnWeapon.Get()->GetWeaponID() == TF_WEAPON_COMPOUND_BOW )
+				{
+					nKillType = TF_DMG_CUSTOM_BURNING_ARROW;
+				}
+			}
 
 #ifdef DEBUG
-				if ( tf_afterburn_debug.GetBool() )
-				{
-					engine->Con_NPrintf( 0, "Tick afterburn duration = %f", m_flAfterburnDuration );
-				}
+			if ( tf_afterburn_debug.GetBool() )
+			{
+				engine->Con_NPrintf( 0, "Tick afterburn duration = %f", m_flAfterburnDuration );
+			}
 #endif // DEBUG
 
-				// which degree are we burning?
-				if ( m_flAfterburnDuration >= tf_afterburn_duration_ratio_third_degree * tf_afterburn_max_duration )
-				{
-					flBurnDamage *= tf_afterburn_mult_third_degree;
-				}
-				else if ( m_flAfterburnDuration >= tf_afterburn_duration_ratio_second_degree * tf_afterburn_max_duration )
-				{
-					flBurnDamage *= tf_afterburn_mult_second_degree;
-				}
+			// which degree are we burning?
+			if ( m_flAfterburnDuration >= tf_afterburn_duration_ratio_third_degree * tf_afterburn_max_duration )
+			{
+				flBurnDamage *= tf_afterburn_mult_third_degree;
+			}
+			else if ( m_flAfterburnDuration >= tf_afterburn_duration_ratio_second_degree * tf_afterburn_max_duration )
+			{
+				flBurnDamage *= tf_afterburn_mult_second_degree;
+			}
 		
-				// Halloween Spell
-				if ( TF_IsHolidayActive( kHoliday_HalloweenOrFullMoon ) )
+			// Halloween Spell
+			if ( TF_IsHolidayActive( kHoliday_HalloweenOrFullMoon ) )
+			{
+				int iHalloweenSpell = 0;
+				CALL_ATTRIB_HOOK_INT_ON_OTHER( m_hBurnWeapon, iHalloweenSpell, halloween_green_flames );
+				if ( iHalloweenSpell > 0 )
 				{
-					int iHalloweenSpell = 0;
-					CALL_ATTRIB_HOOK_INT_ON_OTHER( m_hBurnWeapon, iHalloweenSpell, halloween_green_flames );
-					if ( iHalloweenSpell > 0 )
-					{
-						const char *pEffectName = "halloween_burningplayer_flyingbits";
-						// Extra Halloween Particles
-						DispatchParticleEffect( pEffectName, PATTACH_ABSORIGIN_FOLLOW, m_pOuter, 0, false );
-					}
+					const char *pEffectName = "halloween_burningplayer_flyingbits";
+					// Extra Halloween Particles
+					DispatchParticleEffect( pEffectName, PATTACH_ABSORIGIN_FOLLOW, m_pOuter, 0, false );
 				}
+			}
 	
-				CTakeDamageInfo info( m_hBurnAttacker, m_hBurnAttacker, m_hBurnWeapon, flBurnDamage, DMG_BURN | DMG_PREVENT_PHYSICS_FORCE, nKillType );
-				m_pOuter->TakeDamage( info );
+			CTakeDamageInfo info( m_hBurnAttacker, m_hBurnAttacker, m_hBurnWeapon, flBurnDamage, DMG_BURN | DMG_PREVENT_PHYSICS_FORCE, nKillType );
+			m_pOuter->TakeDamage( info );
 
-				// Give health to attacker if they are carrying the Vampire Powerup.
-				if ( TFGameRules() && TFGameRules()->IsPowerupMode() )  
+			// Give health to attacker if they are carrying the Vampire Powerup.
+			if ( TFGameRules() && TFGameRules()->IsPowerupMode() )  
+			{
+				CTFPlayer *pTFAttacker = ToTFPlayer( GetConditionProvider( TF_COND_BURNING ) );
+
+				if ( pTFAttacker && pTFAttacker != m_pOuter )
 				{
-					CTFPlayer *pTFAttacker = ToTFPlayer( GetConditionProvider( TF_COND_BURNING ) );
-
-					if ( pTFAttacker && pTFAttacker != m_pOuter )
+					if ( pTFAttacker->m_Shared.GetCarryingRuneType() == RUNE_VAMPIRE )
 					{
-						if ( pTFAttacker->m_Shared.GetCarryingRuneType() == RUNE_VAMPIRE )
-						{
-							pTFAttacker->TakeHealth( flBurnDamage, DMG_IGNORE_MAXHEALTH );
-						}
+						pTFAttacker->TakeHealth( flBurnDamage, DMG_IGNORE_MAXHEALTH );
 					}
 				}
 			}
@@ -6568,13 +6564,6 @@ void CTFPlayerShared::Burn( CTFPlayer *pAttacker, CTFWeaponBase *pWeapon, float 
 	if ( InCond( TF_COND_PHASE ) || InCond( TF_COND_PASSTIME_INTERCEPTION ) )
 		return;
 
-	// pyros don't burn persistently or take persistent burning damage, but we show brief burn effect so attacker can tell they hit
-	bool bVictimIsImmunePyro = ( TF_CLASS_PYRO ==  m_pOuter->GetPlayerClass()->GetClassIndex() );
-	if ( bVictimIsImmunePyro )
-	{
-		bVictimIsImmunePyro = !InCond( TF_COND_BURNING_PYRO );
-	}
-
 #ifdef DEBUG
 	static float s_flStartAfterburnTime = 0.f;
 	static float s_flReachMaxAfterburnTime = 0.f;
@@ -6585,13 +6574,13 @@ void CTFPlayerShared::Burn( CTFPlayer *pAttacker, CTFWeaponBase *pWeapon, float 
 		// Start burning
 		AddCond( TF_COND_BURNING, -1.f, pAttacker );
 		m_flFlameBurnTime = gpGlobals->curtime + TF_BURNING_FREQUENCY;
-		m_flAfterburnDuration = pWeapon ? pWeapon->GetInitialAfterburnDuration() : 0.f;
+		m_flAfterburnDuration = pWeapon->GetInitialAfterburnDuration();
 		
 		// Reduces direct healing effectiveness
 		AddCond( TF_COND_HEALING_DEBUFF, m_flAfterburnDuration, pAttacker );
 
 		// let the attacker know he burned me
-		if ( pAttacker && !bVictimIsImmunePyro )
+		if ( pAttacker )
 		{
 			pAttacker->OnBurnOther( m_pOuter, pWeapon );
 
@@ -6604,82 +6593,16 @@ void CTFPlayerShared::Burn( CTFPlayer *pAttacker, CTFWeaponBase *pWeapon, float 
 #endif // DEBUG
 	}
 
-	int bAfterburnImmunity = bVictimIsImmunePyro;
-
-	// Check my weapon
-	if ( !bAfterburnImmunity )
-	{
-		int nAfterburnImmunity = 0;
-		CTFWeaponBase *pMyWeapon = GetActiveTFWeapon();
-		if ( pMyWeapon )
-		{
-			CALL_ATTRIB_HOOK_INT_ON_OTHER( pMyWeapon, nAfterburnImmunity, afterburn_immunity );
-		}
-
-		bAfterburnImmunity |= nAfterburnImmunity != 0;
-	}
-
-	// STAGING_SPY
-	if ( InCond( TF_COND_AFTERBURN_IMMUNE ) )
-	{
-		bAfterburnImmunity = true;
-	}
-
-	// Check demo shield
-	if ( !bAfterburnImmunity && IsShieldEquipped() )
-	{
-		int nAfterburnImmunity = 0;
-		CTFWearableDemoShield *pWearableShield = GetEquippedDemoShield( m_pOuter );
-		if ( pWearableShield && !pWearableShield->IsDisguiseWearable() )
-		{
-			CALL_ATTRIB_HOOK_INT_ON_OTHER( pWearableShield, nAfterburnImmunity, afterburn_immunity );
-		}
-
-		bAfterburnImmunity |= nAfterburnImmunity != 0;
-	}
-	
-	// Check sniper shields (e.g. Darwin's)
-	if ( !bAfterburnImmunity && m_pOuter->IsPlayerClass( TF_CLASS_SNIPER ) )
-	{
-		for ( int i = 0; i < m_pOuter->GetNumWearables(); ++i )
-		{
-			CTFWearable *pWearableItem = dynamic_cast< CTFWearable* >( m_pOuter->GetWearable( i ) );
-			if ( !pWearableItem )
-				continue;
-
-			int nAfterburnImmunity = 0;
-			CALL_ATTRIB_HOOK_INT_ON_OTHER( pWearableItem, nAfterburnImmunity, afterburn_immunity );
-			if ( nAfterburnImmunity )
-			{
-				bAfterburnImmunity = true;
-				break;
-			}
-		}
-	}
-
 	// check afterburn duration
 	float flFlameLife = pWeapon ? pWeapon->GetAfterburnRateOnHit() : 0.f;
-	if ( bAfterburnImmunity )
-	{
-		flFlameLife = TF_BURNING_FLAME_LIFE_PYRO;
-	}
-	else if ( flBurningTime > 0 )
+	if ( flBurningTime > 0 )
 	{
 		flFlameLife = flBurningTime;
 	}
 	
 	CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pWeapon, flFlameLife, mult_wpn_burntime );
 
-	// flame immunity will always have a fixed duration
-	if ( bAfterburnImmunity )
-	{
-		m_flAfterburnDuration = flFlameLife;
-	}
-	// otherwise stack the duration
-	else
-	{
-		m_flAfterburnDuration += flFlameLife;
-	}
+	m_flAfterburnDuration += flFlameLife;
 
 	m_flAfterburnDuration = Clamp( m_flAfterburnDuration, 0.f, tf_afterburn_max_duration );
 
@@ -10129,6 +10052,7 @@ void CTFPlayer::FireBullet( CTFWeaponBase *pWpn, const FireBulletsInfo_t &info, 
 		UTIL_PlayerBulletTrace( vecStart, vecEnd, info.m_vecDirShooting, MASK_SOLID, &traceFilter, &trace );
 	}
 
+
 #ifndef CLIENT_DLL
 	CUtlVector<CBaseEntity *> vecTracedEntities;
 	bool bPenetratingShot = ( (ePenetrateType == TF_DMG_CUSTOM_PENETRATE_ALL_PLAYERS) || (ePenetrateType == TF_DMG_CUSTOM_PENETRATE_MY_TEAM) || (ePenetrateType == TF_DMG_CUSTOM_PENETRATE_NONBURNING_TEAMMATE) );
@@ -10311,13 +10235,12 @@ void CTFPlayer::FireBullet( CTFWeaponBase *pWpn, const FireBulletsInfo_t &info, 
 #endif
 
 #ifdef GAME_DLL
-#ifdef _DEBUG
 	if ( tf_debug_bullets.GetBool() )
 	{
 		NDebugOverlay::Line( vecStart, trace.endpos, 0,255,0, true, 30 );
 	}
-#endif // _DEBUG
 #endif
+
 
 	if ( trace.fraction < 1.0 )
 	{
@@ -12656,10 +12579,6 @@ bool CTFPlayer::CanAirDash( void ) const
 	if ( m_Shared.InCond( TF_COND_HALLOWEEN_SPEED_BOOST ) )
 		return true;
 
-	bool bScout = GetPlayerClass()->IsClass( TF_CLASS_SCOUT );
-	if ( !bScout )
-		return false;
-
 	if ( m_Shared.InCond( TF_COND_SODAPOPPER_HYPE ) )
 	{
 		if ( m_Shared.GetAirDash() < 5 )
@@ -12810,6 +12729,14 @@ int	CTFPlayer::GetMaxAmmo( int iAmmoIndex, int iClassIndex /*= -1*/ )
 	{
 		// All classes by default can carry a max of 1 "Grenade3" which is being used as ACTIONSLOT Throwables
 		iMax = 1;
+	}
+	else if ( iAmmoIndex == TF_AMMO_TERTIARY )
+	{
+		CALL_ATTRIB_HOOK_INT( iMax, mult_maxammo_tertiary );
+	}
+	else if ( iAmmoIndex == TF_AMMO_QUARTARY )
+	{
+		CALL_ATTRIB_HOOK_INT( iMax, mult_maxammo_quartary );
 	}
 
 	// Haste Powerup Rune adds multiplier to Max Ammo

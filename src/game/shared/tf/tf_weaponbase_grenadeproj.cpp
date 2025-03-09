@@ -59,7 +59,7 @@ BEGIN_NETWORK_TABLE( CTFWeaponBaseGrenadeProj, DT_TFWeaponBaseGrenadeProj )
 	RecvPropEHandle( RECVINFO( m_hDeflectOwner )),
 
 #else
-	SendPropVector( SENDINFO( m_vInitialVelocity ), 20 /*nbits*/, 0 /*flags*/, -3000 /*low value*/, 3000 /*high value*/	),
+	SendPropVector( SENDINFO( m_vInitialVelocity ), 20 /*nbits*/, 0 /*flags*/, -20000 /*low value*/, 20000 /*high value*/	),
 	SendPropBool( SENDINFO( m_bCritical ) ),
 
 	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),

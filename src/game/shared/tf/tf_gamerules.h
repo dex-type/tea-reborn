@@ -381,6 +381,8 @@ public:
 	virtual void	SetupOnStalemateStart( void );
 	virtual void	SetupOnStalemateEnd( void );
 
+	bool IsSplash(int input);
+
 	virtual void	RecalculateControlPointState( void );
 
 	void			TeamPlayerCountChanged( CTFTeam *pTeam );

@@ -200,7 +200,7 @@ ConVar tf_damage_multiplier_blue( "tf_damage_multiplier_blue", "1.0", FCVAR_CHEA
 ConVar tf_damage_multiplier_red( "tf_damage_multiplier_red", "1.0", FCVAR_CHEAT, "All incoming damage to a red player is multiplied by this value" );
 
 
-ConVar tf_max_voice_speak_delay( "tf_max_voice_speak_delay", "1.5", FCVAR_DEVELOPMENTONLY, "Max time after a voice command until player can do another one", true, 0.1f, false, 0.f );
+ConVar tf_max_voice_speak_delay( "tf_max_voice_speak_delay", "1.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Max time after a voice command until player can do another one", true, 0.1f, false, 0.f );
 
 ConVar tf_allow_player_use( "tf_allow_player_use", "0", FCVAR_NOTIFY, "Allow players to execute +use while playing." );
 
@@ -1941,6 +1941,8 @@ void CTFPlayer::RegenThink( void )
 		{
 			RegenAmmoInternal( TF_AMMO_PRIMARY, flRegenAmount );
 			RegenAmmoInternal( TF_AMMO_SECONDARY, flRegenAmount );
+			RegenAmmoInternal( TF_AMMO_TERTIARY, flRegenAmount );
+			RegenAmmoInternal( TF_AMMO_QUARTARY, flRegenAmount );
 		}
 
 		// Regenerate metal
@@ -2071,6 +2073,8 @@ void CTFPlayer::RuneRegenThink( void )
 		{
 			RegenAmmoInternal( TF_AMMO_PRIMARY, 0.5f );
 			RegenAmmoInternal( TF_AMMO_SECONDARY, 0.5f );
+			RegenAmmoInternal( TF_AMMO_TERTIARY, 0.5f );
+			RegenAmmoInternal( TF_AMMO_QUARTARY, 0.5f );
 			GiveAmmo( 200, TF_AMMO_METAL, true );
 		}
 	}
@@ -9903,11 +9907,6 @@ int CTFPlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			}
 		}
 
-		if ( IsPlayerClass( TF_CLASS_PYRO ) )
-		{
-			m_Shared.AddCond( TF_COND_BURNING_PYRO, tf_afterburn_max_duration );
-		}
-
 		CTFWeaponBase *pGasCan = nullptr;
 		if ( pTFGasTosser )
 		{
@@ -10597,6 +10596,7 @@ int CTFPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	}
 
 	float flBleedingTime = 0.0f;
+	float flBurningTime = 0.0f;
 	int iPrevHealth = m_iHealth;
 
 	if ( m_takedamage != DAMAGE_EVENTS_ONLY )
@@ -10604,6 +10604,10 @@ int CTFPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 		if ( info.GetDamageCustom() != TF_DMG_CUSTOM_BLEEDING && !outParams.bSelfBlastDmg )
 		{
 			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( info.GetWeapon(), flBleedingTime, bleeding_duration );
+		}
+		if (info.GetDamageCustom() != TF_DMG_CUSTOM_BURNING)
+		{
+			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER(info.GetWeapon(), flBurningTime, set_dmgtype_ignite);
 		}
 
 		// Take damage - round to the nearest integer.
@@ -10679,7 +10683,7 @@ int CTFPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 		}
 	}
 
-	if ( outParams.bIgniting && pTFAttacker )
+	if ( (flBurningTime != 0 || outParams.bIgniting) && pTFAttacker )
 	{
 		m_Shared.Burn( pTFAttacker, dynamic_cast< CTFWeaponBase * >( info.GetWeapon() ) );
 	}
@@ -11791,8 +11795,8 @@ void CTFPlayer::Event_Killed( const CTakeDamageInfo &info )
 	bool bOnGround = GetFlags() & FL_ONGROUND;
 	bool bElectrocuted = false;
 	bool bDisguised = m_Shared.InCond( TF_COND_DISGUISED );
-	// we want the rag doll to burn if the player was burning and was not a pyro (who only burns momentarily)
-	bool bBurning = m_Shared.InCond( TF_COND_BURNING ) && ( TF_CLASS_PYRO != GetPlayerClass()->GetClassIndex() );
+	// we want the rag doll to burn if the player was burning
+	bool bBurning = m_Shared.InCond( TF_COND_BURNING );
 	CTFPlayer *pOriginalBurner = m_Shared.GetOriginalBurnAttacker();
 	CTFPlayer *pLastBurner = m_Shared.GetBurnAttacker();
 
@@ -14775,6 +14779,8 @@ void CTFPlayer::CheatImpulseCommands( int iImpulse )
 				GiveAmmo( 1000, TF_AMMO_GRENADES1 );
 				GiveAmmo( 1000, TF_AMMO_GRENADES2 );
 				GiveAmmo( 1000, TF_AMMO_GRENADES3 );
+				GiveAmmo( 1000, TF_AMMO_TERTIARY );
+				GiveAmmo( 1000, TF_AMMO_QUARTARY );
 				TakeHealth( 999, DMG_GENERIC );
 
 				// Refills weapon clips, too

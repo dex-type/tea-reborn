@@ -265,6 +265,12 @@ bool CHealthAmmoKit::MyTouch( CBasePlayer *pPlayer )
 					bAmmoSuccess = true;
 				}
 
+				int iMaxTertiary = pTFPlayer->GetMaxAmmo(TF_AMMO_TERTIARY);
+				if (pTFPlayer->GiveAmmo(ceil(iMaxTertiary * flPackRatio), TF_AMMO_TERTIARY, true, kAmmoSource_Pickup))
+				{
+					bAmmoSuccess = true;
+				}
+
 				if ( pTFPlayer->m_Shared.AddToSpyCloakMeter( 100.0f * flPackRatio ) )
 				{
 					bAmmoSuccess = true;

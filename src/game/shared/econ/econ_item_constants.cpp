@@ -855,6 +855,7 @@ const char* GetHalloweenOfferingInvalidReason( const IEconItemInterface *pTestIt
 	if ( pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_PRIMARY 
 		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_SECONDARY
 		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_MELEE
+		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_TERTIARY
 		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_BUILDING
 		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_PDA
 		|| pTestItem->GetItemDefinition()->GetLoadoutSlot( 0 ) == LOADOUT_POSITION_PDA2

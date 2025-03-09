@@ -1566,6 +1566,8 @@ const char *g_szLoadoutStringsForDisplay[] =
 	"#LoadoutSlot_Taunt7",		// LOADOUT_POSITION_TAUNT7,
 	"#LoadoutSlot_Taunt8",		// LOADOUT_POSITION_TAUNT8,
 
+	"#LoadoutSlot_Tertiary",	// LOADOUT_POSITION_TERTIARY,
+
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_szLoadoutStringsForDisplay ) == CLASS_LOADOUT_POSITION_COUNT );
 

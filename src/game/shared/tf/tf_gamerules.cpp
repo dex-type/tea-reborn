@@ -20,6 +20,7 @@
 #include "tf_matchmaking_shared.h"
 #include "tf_progression_description.h"
 
+
 #ifdef CLIENT_DLL
 	#include <game/client/iviewport.h>
 	#include "c_tf_player.h"
@@ -127,6 +128,8 @@
 	#include "tf_party.h"
 	#include "tf_autobalance.h"
 	#include "player_voice_listener.h"
+
+	#include "tf_weapon_shotgun.h"
 #endif
 
 #include "tf_mann_vs_machine_stats.h"
@@ -418,6 +421,13 @@ static MapInfo_t s_CommunityMaps[] = {
 	{ "pl_patagonia", "Patagonia", "#Gametype_Escort" },
 	{ "plr_cutter", "Cutter", "#Gametype_EscortRace" },
 	{ "vsh_maul", " Maul", "#GameType_VSH" },
+
+
+
+
+	{ "koth_ethre", "Ethre", "#GameType_Koth" },
+	{ "core_junkyard", "Junkyard", "#GameType_Core" },
+	{ "tecl_urban", "Urban", "#GameType_Territory" },
 };
 
 /*
@@ -5867,6 +5877,16 @@ void CTFGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecS
 	RadiusDamage(radiusinfo);
 }
 
+bool CTFGameRules::IsSplash(int input) {
+	if (input & DMG_BLAST) {
+		if (input & DMG_DIRECT) {
+			return false;
+		}
+		return true;
+	}
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -5915,7 +5935,10 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 	// important that we do this before figuring out whether we're going to be a minicrit or not.
 
 	// Allow attributes to force critical hits on players with specific conditions
-	if ( pVictim )
+	// MP NOTE: unless it's self damage
+	// MP NOTE: or it's not a direct hit
+	// MP NOTE: or it's dot
+	if ( pVictim && pVictim != pTFAttacker && !IsSplash(bitsDamage) && !IsDOTDmg(info.GetDamageCustom()))
 	{
 		// Crit against players that have these conditions
 		int iCritDamageTypes = 0;
@@ -5990,6 +6013,35 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 
 						if ( condition_to_attribute_translation[ i ] == TF_COND_DISGUISED || 
 							 condition_to_attribute_translation[ i ] == TF_COND_DISGUISING )
+						{
+							// if our attribute specifically crits disguised enemies we need to show it on the client
+							bShowDisguisedCrit = true;
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		iCritDamageTypes = 0;
+		CALL_ATTRIB_HOOK_INT_ON_OTHER(pWeapon, iCritDamageTypes, or_minicrit_vs_playercond);
+
+		if (iCritDamageTypes)
+		{
+			// iCritDamageTypes is an or'd list of types. We need to pull each bit out and
+			// then test against what that bit in the items_master file maps to.
+			for (int i = 0; condition_to_attribute_translation[i] != TF_COND_LAST; i++)
+			{
+				if (iCritDamageTypes & (1 << i))
+				{
+					if (pVictim->m_Shared.InCond(condition_to_attribute_translation[i]))
+					{
+						bitsDamage |= DMG_CRITICAL;
+						info.AddDamageType(DMG_CRITICAL);
+						info.SetCritType(CTakeDamageInfo::CRIT_FULL);
+
+						if (condition_to_attribute_translation[i] == TF_COND_DISGUISED ||
+							condition_to_attribute_translation[i] == TF_COND_DISGUISING)
 						{
 							// if our attribute specifically crits disguised enemies we need to show it on the client
 							bShowDisguisedCrit = true;
@@ -6426,6 +6478,26 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 		}
 	}
 
+	if (pWeapon && pWeapon->GetWeaponID() == TF_WEAPON_DOUBLEBARREL) {
+		CTFDoubleBarrel* pDoubleBarrel = dynamic_cast<CTFDoubleBarrel*>(pWeapon);
+		bool passed = false;
+		for (int i = 0; i < TF_DOUBLEBARREL_MAX_VICTIMS; ++i) {
+			if (pDoubleBarrel->m_pDoubleBarrelVictims[i] == pVictim) {
+				flDamage *= 1.5f;
+				passed = true;
+				break;
+			}
+		}
+		if (!passed) {
+			for (int i = 0; i < TF_DOUBLEBARREL_MAX_VICTIMS; ++i) {
+				if (pDoubleBarrel->m_pDoubleBarrelVictims[i] == nullptr) {
+					pDoubleBarrel->m_pDoubleBarrelVictims[i] = pVictim;
+					break;
+				}
+			}
+		}
+	}
+
 	// Use defense buffs if it's not a backstab or direct crush damage (telefrage, etc.)
 	if ( pVictim && info.GetDamageCustom() != TF_DMG_CUSTOM_BACKSTAB && ( info.GetDamageType() & DMG_CRUSH ) == 0 )
 	{
@@ -6504,7 +6576,7 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 		if ( bitsDamage & DMG_USEDISTANCEMOD )
 		{
 			Vector vAttackerPos = pAttacker->WorldSpaceCenter();
-			float flOptimalDistance = 512.0;
+			float flOptimalDistance = 768.0;
 
 			// Use Sentry position for distance mod
 			CObjectSentrygun *pSentry = dynamic_cast<CObjectSentrygun*>( info.GetInflictor() );
@@ -6599,6 +6671,11 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 					flRandomDamage *= 1.5f;
 				}
 				break;
+			case TF_WEAPON_DOUBLEBARREL:
+				if (flRandomRangeVal > 0.5)
+				{
+					flRandomDamage *= 0.4f;
+				}
 			}
 		}
 
@@ -6649,8 +6726,7 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 				Warning( "    MINICRIT: Dmg %.2f -> ", flDamage );
 			}
 
-			COMPILE_TIME_ASSERT( TF_DAMAGE_MINICRIT_MULTIPLIER > 1.f );
-			flCritDamage = ( TF_DAMAGE_MINICRIT_MULTIPLIER - 1.f ) * flDamage;
+			flCritDamage = ( TF_DAMAGE_MINICRIT_MULTIPLIER - 1.0f ) * flDamage;
 
 			bitsDamage |= DMG_CRITICAL;
 			info.AddDamageType( DMG_CRITICAL );
@@ -6756,6 +6832,9 @@ bool CTFGameRules::ApplyOnDamageModifyRules( CTakeDamageInfo &info, CBaseEntity 
 		}
 
 		flDamage += flCritDamage;
+	}
+	else if (pAttacker != pVictimBaseEntity){
+		flDamage *= 0.8;
 	}
 
 	if ( pTFAttacker && pTFAttacker->IsPlayerClass( TF_CLASS_SPY ) )
@@ -7065,6 +7144,8 @@ float CTFGameRules::ApplyOnDamageAliveModifyRules( const CTakeDamageInfo &info, 
 	CTFPlayer *pVictim = ToTFPlayer( pVictimBaseEntity );
 	CBaseEntity *pAttacker = info.GetAttacker();
 	CTFPlayer *pTFAttacker = ToTFPlayer( pAttacker );
+	CBaseEntity* wWeapon = info.GetWeapon();
+	CTFWeaponBase* wCTFWeapon = static_cast<CTFWeaponBase*>(wWeapon);
 
 	float flRealDamage = info.GetDamage();
 
@@ -7080,11 +7161,12 @@ float CTFGameRules::ApplyOnDamageAliveModifyRules( const CTakeDamageInfo &info, 
 		// damage *from-a-bleed-DOT*, but not from the bleed application attack.
 		if ( !IsDOTDmg( info.GetDamageCustom() ) )
 		{
-			int iAddBurningDamageType = 0;
-			CALL_ATTRIB_HOOK_INT_ON_OTHER( info.GetWeapon(), iAddBurningDamageType, set_dmgtype_ignite );
-			if ( iAddBurningDamageType )
+			float flAddBurningDamageType = 0;
+			CALL_ATTRIB_HOOK_FLOAT_ON_OTHER(wWeapon, flAddBurningDamageType, set_dmgtype_ignite);
+			if ( flAddBurningDamageType != 0 )
 			{
 				iDamageTypeBits |= DMG_IGNITE;
+				pVictim->m_Shared.Burn(pVictim, wCTFWeapon);
 			}
 		}
 
@@ -19730,6 +19812,8 @@ void CTFHolidayEntity::Teleport()
 		pPlayer->GiveAmmo( 1000, TF_AMMO_GRENADES1 );
 		pPlayer->GiveAmmo( 1000, TF_AMMO_GRENADES2 );
 		pPlayer->GiveAmmo( 1000, TF_AMMO_GRENADES3 );
+		pPlayer->GiveAmmo( 1000, TF_AMMO_TERTIARY );
+		pPlayer->GiveAmmo( 1000, TF_AMMO_QUARTARY );
 
 		// Refills weapon clips, too
 		for ( int i = 0; i < MAX_WEAPONS; i++ )

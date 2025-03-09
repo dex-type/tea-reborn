@@ -1337,6 +1337,8 @@ CON_COMMAND_F( bot_refill, "Refill all bot ammo counts", FCVAR_CHEAT )
 			pPlayer->GiveAmmo( 1000, TF_AMMO_PRIMARY );
 			pPlayer->GiveAmmo( 1000, TF_AMMO_SECONDARY );
 			pPlayer->GiveAmmo( 1000, TF_AMMO_METAL );
+			pPlayer->GiveAmmo( 1000, TF_AMMO_TERTIARY );
+			pPlayer->GiveAmmo( 1000, TF_AMMO_QUARTARY );
 			pPlayer->TakeHealth( 999, DMG_GENERIC );
 		}
 	}

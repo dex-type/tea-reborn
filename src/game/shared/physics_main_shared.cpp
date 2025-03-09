@@ -1353,11 +1353,11 @@ void CBaseEntity::ResolveFlyCollisionBounce( trace_t &trace, Vector &vecVelocity
 	physprops->GetPhysicsProperties( trace.surface.surfaceProps, NULL, NULL, NULL, &flSurfaceElasticity );
 	
 	float flTotalElasticity = GetElasticity() * flSurfaceElasticity;
-	if ( flMinTotalElasticity > 0.9f )
+	if ( flMinTotalElasticity > 1.0f )
 	{
-		flMinTotalElasticity = 0.9f;
+		flMinTotalElasticity = 1.0f;
 	}
-	flTotalElasticity = clamp( flTotalElasticity, flMinTotalElasticity, 0.9f );
+	flTotalElasticity = clamp( flTotalElasticity, flMinTotalElasticity, 1.0f );
 
 	// NOTE: A backoff of 2.0f is a reflection
 	Vector vecAbsVelocity;

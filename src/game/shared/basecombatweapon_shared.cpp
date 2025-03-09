@@ -1437,12 +1437,10 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 		SetViewModel();
 		SendWeaponAnim( iActivity );
 
-		pOwner->SetNextAttack( gpGlobals->curtime + SequenceDuration() );
+		pOwner->SetNextAttack( gpGlobals->curtime );
 	}
 
 	// Can't shoot again until we've finished deploying
-	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
-	m_flNextSecondaryAttack	= gpGlobals->curtime + SequenceDuration();
 	m_flHudHintMinDisplayTime = 0;
 
 	m_bAltFireHudHintDisplayed = false;
@@ -1489,7 +1487,7 @@ bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 	MDLCACHE_CRITICAL_SECTION();
 
 	// cancel any reload in progress.
-	m_bInReload = false; 
+	//m_bInReload = false; 
 	m_bFiringWholeClip = false;
 
 	// kill any think functions
@@ -1505,11 +1503,11 @@ bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 		flSequenceDuration = SequenceDuration();
 	}
 
-	CBaseCombatCharacter *pOwner = GetOwner();
+	/*CBaseCombatCharacter* pOwner = GetOwner();
 	if (pOwner)
 	{
 		pOwner->SetNextAttack( gpGlobals->curtime + flSequenceDuration );
-	}
+	}*/
 
 	// If we don't have a holster anim, hide immediately to avoid timing issues
 	if ( !flSequenceDuration )
@@ -2205,7 +2203,7 @@ void CBaseCombatWeapon::FinishReload( void )
 		{
 			int primary	= MIN( GetMaxClip1() - m_iClip1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));	
 			m_iClip1 += primary;
-			pOwner->RemoveAmmo( primary, m_iPrimaryAmmoType);
+			//pOwner->RemoveAmmo( primary, m_iPrimaryAmmoType);	// MP NOTE: not neccecary since we use dread templar style reloads
 		}
 
 		// If I use secondary clips, reload secondary
@@ -2332,8 +2330,9 @@ void CBaseCombatWeapon::PrimaryAttack( void )
 	// Make sure we don't fire more than the amount in the clip
 	if ( UsesClipsForAmmo1() )
 	{
-		info.m_iShots = MIN( info.m_iShots, m_iClip1 );
+		info.m_iShots = MIN( MIN( info.m_iShots, m_iClip1 ), pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) );
 		m_iClip1 -= info.m_iShots;
+		pPlayer->RemoveAmmo(info.m_iShots, m_iPrimaryAmmoType);
 	}
 	else
 	{

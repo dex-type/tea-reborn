@@ -19,8 +19,6 @@
 #include "tf_passtime_logic.h"
 #endif
 
-ConVar tf_use_fixed_weaponspreads( "tf_use_fixed_weaponspreads", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "If set to 1, weapons that fire multiple pellets per shot will use a non-random pellet distribution." );
-
 // Client specific.
 #ifdef CLIENT_DLL
 
@@ -150,6 +148,9 @@ Vector g_vecFixedWpnSpreadPelletsWideLarge[] =
 // 	Vector( 0.f, -0.25f, 0.f ),
 // 	Vector( 0.f, 0.25f, 0.f ),
 };
+
+ConVar	tea_spread_force_type("tea_spread_force_type", "-1", FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar	tea_spread_mult("tea_spread_mult", "1", FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 //-----------------------------------------------------------------------------
 // Purpose: This runs on both the client and the server.  On the server, it 
@@ -297,13 +298,18 @@ void FX_FireBullets( CTFWeaponBase *pWpn, int iPlayer, const Vector &vecOrigin, 
 		pDmgAccumulator->Start();
 	}
 #endif // !CLIENT
-
 	int nBulletsPerShot = pWeaponInfo->GetWeaponData( iMode ).m_nBulletsPerShot;
-	bool bFixedSpread = ( nDamageType & DMG_BUCKSHOT ) && ( nBulletsPerShot > 1 ) && IsFixedWeaponSpreadEnabled( pWpn );
-	if ( pWeapon )
+	int eFixedSpread = TEA_SPREADMODE_CIRCLE_UNFILTERED;
+	if (pWeapon)
 	{
-		CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pWeapon, nBulletsPerShot, mult_bullets_per_shot );
+		CALL_ATTRIB_HOOK_FLOAT_ON_OTHER(pWeapon, nBulletsPerShot, mult_bullets_per_shot);
 	}
+	eFixedSpread = GetWeaponSpreadType(pWpn);
+	int iForcedSpreadType = tea_spread_force_type.GetInt();
+	if (iForcedSpreadType != -1) {
+		eFixedSpread = iForcedSpreadType;
+	}
+
 	for ( int iBullet = 0; iBullet < nBulletsPerShot; ++iBullet )
 	{
 		// Initialize random system with this seed.
@@ -311,33 +317,85 @@ void FX_FireBullets( CTFWeaponBase *pWpn, int iPlayer, const Vector &vecOrigin, 
 
 		float x = 0.f;
 		float y = 0.f;
+		float level = 0.0f;
+		float rot = 0.0f;
+		float frac = 0.0f;
 
-		if ( bFixedSpread )
-		{
-			if ( nBulletsPerShot >= 15 )
-			{
-				int iSpread = iBullet;
-				while ( iSpread >= ARRAYSIZE( g_vecFixedWpnSpreadPelletsWideLarge ) )
-				{
-					iSpread -= ARRAYSIZE( g_vecFixedWpnSpreadPelletsWideLarge );
-				}
-				float flScalar = 1.f;
-				x = ( g_vecFixedWpnSpreadPelletsWideLarge[iSpread].x + random->RandomFloat( -0.07f, 0.07f ) ) * flScalar;
-				y = ( g_vecFixedWpnSpreadPelletsWideLarge[iSpread].y + random->RandomFloat( -0.07f, 0.07f ) ) * flScalar;
-			}
-			else
-			{
-				int iSpread = iBullet;
-				while ( iSpread >= ARRAYSIZE( g_vecFixedWpnSpreadPellets ) )
-				{
-					iSpread -= ARRAYSIZE( g_vecFixedWpnSpreadPellets );
-				}
-				float flScalar = 0.5f;
-				x = g_vecFixedWpnSpreadPellets[iSpread].x * flScalar;
-				y = g_vecFixedWpnSpreadPellets[iSpread].y * flScalar;
-			}
+		if (iBullet != 0)
+		switch (eFixedSpread) {
+			case TEA_SPREADMODE_SQUARE_UNFILTERED:
+				Msg("square unfiltered\n");
+				x = RandomFloat(-0.5f, 0.5f) * 2;
+				y = RandomFloat(-0.5f, 0.5f) * 2;
+				break;
+			case TEA_SPREADMODE_SQUARE_GAUSSIAN:
+				Msg("square gaussian\n");
+				x = RandomFloat(-0.5f, 0.5f) + RandomFloat(-0.5f, 0.5f);
+				y = RandomFloat(-0.5f, 0.5f) + RandomFloat(-0.5f, 0.5f);
+				break;
+			case TEA_SPREADMODE_SQUARE_SERIES:
+				Msg("square series\n");
+				frac = iBullet / (nBulletsPerShot - 1.0f) * 2;
+				x = RandomFloat(-0.5f, 0.5f) * frac;
+				y = RandomFloat(-0.5f, 0.5f) * frac;
+				break;
+			case TEA_SPREADMODE_CIRCLE_UNFILTERED:
+				Msg("circle unfiltered\n");
+				level = RandomFloat(0, 0.5f) * 2;
+				rot = iBullet * M_PI / (nBulletsPerShot - 1) * 2;
+				x = level * sin(rot);
+				y = level * cos(rot);
+				break;
+			case TEA_SPREADMODE_CIRCLE_GAUSSIAN:
+				Msg("circle gaussian\n");
+				level = abs(RandomFloat(-0.5f, 0.5f) + RandomFloat(-0.5f, 0.5f));
+				rot = iBullet * M_PI / nBulletsPerShot * 2;
+				x = level * sin(rot);
+				y = level * cos(rot);
+				break;
+			case TEA_SPREADMODE_CIRCLE_SERIES:
+				Msg("circle series\n");
+				rot = RandomFloat(0, 1) * M_PI * 2;
+				level = iBullet / (nBulletsPerShot - 1.0f);
+				x = level * sin(rot);
+				y = level * cos(rot);
+				break;
+			case TEA_SPREADMODE_CIRCLE_FIXED:
+				Msg("circle fixed\n");
+				rot = iBullet * M_PI / (nBulletsPerShot - 1) * 2;
+				x = sin(rot) * 2;
+				y = cos(rot) * 2;
+				break;
+			case TEA_SPREADMODE_HORIZONTAL_UNFILTERED:
+				Msg("horizontal unfiltered\n");
+				x = RandomFloat(-0.5f, 0.5f) * 2;
+				break;
+			case TEA_SPREADMODE_HORIZONTAL_GAUSSIAN:
+				Msg("horizontal gaussian\n");
+				x = RandomFloat(-0.5f, 0.5f) + RandomFloat(-0.5f, 0.5f);
+				break;
+			case TEA_SPREADMODE_HORIZONTAL_FIXED:
+				Msg("horizontal fixed\n");
+				level = iBullet * 2.0f / (nBulletsPerShot - 1) - 1;
+				x = level;
+				break;
+			case TEA_SPREADMODE_HORIZONTAL_SERIES:
+				Msg("horizontal series\n");
+				frac = iBullet * 1.0f / (nBulletsPerShot - 1);
+				x = RandomFloat(-0.5f, 0.5f) * 2 * frac;
+				break;
+			default:
+				Msg("null spread\n");
+				break;
 		}
-		else
+		else {
+			Msg("circle series singleshot\n");
+			rot = RandomFloat(0, 1) * M_PI * 2;
+			level = RandomFloat(0, 1);
+			x = level * sin(rot);
+			y = level * cos(rot);
+		}
+		/*else
 		{
 			float flVariance = 0.5f;
 
@@ -371,10 +429,11 @@ void FX_FireBullets( CTFWeaponBase *pWpn, int iPlayer, const Vector &vecOrigin, 
 				x = RandomFloat( -flVariance, flVariance ) + RandomFloat( -flVariance, flVariance );
 				y = RandomFloat( -flVariance, flVariance ) + RandomFloat( -flVariance, flVariance );
 			}
-		}
+		}*/
 
 		// Initialize the variable firing information.
-		fireInfo.m_vecDirShooting = vecShootForward + ( x *  flSpread * vecShootRight ) + ( y * flSpread * vecShootUp );
+		float spreadMult = tea_spread_mult.GetFloat();
+		fireInfo.m_vecDirShooting = vecShootForward + ( x *  flSpread * vecShootRight * spreadMult ) + ( y * flSpread * vecShootUp * spreadMult );
 		fireInfo.m_vecDirShooting.NormalizeInPlace();
 		fireInfo.m_bUseServerRandomSeed = pWpn && pWpn->UseServerRandomSeed();
 
@@ -412,23 +471,19 @@ void FX_FireBullets( CTFWeaponBase *pWpn, int iPlayer, const Vector &vecOrigin, 
 //-----------------------------------------------------------------------------
 // Purpose: Should we make this a per-weapon property?
 //-----------------------------------------------------------------------------
-bool IsFixedWeaponSpreadEnabled( CTFWeaponBase *pWeapon /*= NULL*/ )
+int GetWeaponSpreadType( CTFWeaponBase *pWeapon )
 {
-	bool bFixedSpread = tf_use_fixed_weaponspreads.GetBool();
-
-	const IMatchGroupDescription *pMatchDesc = GetMatchGroupDescription( TFGameRules()->GetCurrentMatchGroup() );
-	if ( pMatchDesc )
+	if ( !pWeapon )
 	{
-		bFixedSpread = pMatchDesc->BUsesFixedWeaponSpread();
+		return TEA_SPREADMODE_CIRCLE_UNFILTERED;
+	}
+	int iFixedSpread = 0;
+	if (pWeapon->GetWeaponMode() == TF_WEAPON_PRIMARY_MODE) {
+		CALL_ATTRIB_HOOK_INT_ON_OTHER(pWeapon, iFixedSpread, fixed_shot_pattern);
+	}
+	else {
+		CALL_ATTRIB_HOOK_INT_ON_OTHER(pWeapon, iFixedSpread, secondary_fixed_shot_pattern);
 	}
 
-	if ( pWeapon && !bFixedSpread )
-	{
-		int iFixedSpread = 0;
-		CALL_ATTRIB_HOOK_INT_ON_OTHER( pWeapon, iFixedSpread, fixed_shot_pattern );
-		if ( iFixedSpread )
-			return true;
-	}
-
-	return bFixedSpread;
+	return (spreadType)iFixedSpread;
 }

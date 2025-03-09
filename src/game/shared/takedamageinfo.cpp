@@ -302,24 +302,13 @@ void CalculateExplosiveDamageForce( CTakeDamageInfo *info, const Vector &vecDir,
 {
 	info->SetDamagePosition( vecForceOrigin );
 
-	float flClampForce = ImpulseScale( 75, 400 );
-
 	// Calculate an impulse large enough to push a 75kg man 4 in/sec per point of damage
-	float flForceScale = info->GetBaseDamage() * ImpulseScale( 75, 4 );
-
-	if( flForceScale > flClampForce )
-		flForceScale = flClampForce;
-
-	// Fudge blast forces a little bit, so that each
-	// victim gets a slightly different trajectory. 
-	// This simulates features that usually vary from
-	// person-to-person variables such as bodyweight,
-	// which are all indentical for characters using the same model.
-	flForceScale *= random->RandomFloat( 0.85, 1.15 );
+	float flForceScale = info->GetDamage() * ImpulseScale( 75, 8 );
 
 	// Calculate the vector and stuff it into the takedamageinfo
 	Vector vecForce = vecDir;
 	VectorNormalize( vecForce );
+	vecForce.z += 0.5f;
 	vecForce *= flForceScale;
 	vecForce *= phys_pushscale.GetFloat();
 	vecForce *= flScale;
@@ -332,9 +321,11 @@ void CalculateExplosiveDamageForce( CTakeDamageInfo *info, const Vector &vecDir,
 void CalculateBulletDamageForce( CTakeDamageInfo *info, int iBulletType, const Vector &vecBulletDir, const Vector &vecForceOrigin, float flScale )
 {
 	info->SetDamagePosition( vecForceOrigin );
+	float flForceScale = info->GetDamage() * ImpulseScale(75, 8);
 	Vector vecForce = vecBulletDir;
 	VectorNormalize( vecForce );
-	vecForce *= GetAmmoDef()->DamageForce( iBulletType );
+	vecForce.z += 0.5f;
+	vecForce *= flForceScale;
 	vecForce *= phys_pushscale.GetFloat();
 	vecForce *= flScale;
 	info->SetDamageForce( vecForce );
@@ -349,9 +340,10 @@ void CalculateMeleeDamageForce( CTakeDamageInfo *info, const Vector &vecMeleeDir
 	info->SetDamagePosition( vecForceOrigin );
 
 	// Calculate an impulse large enough to push a 75kg man 4 in/sec per point of damage
-	float flForceScale = info->GetBaseDamage() * ImpulseScale( 75, 4 );
+	float flForceScale = info->GetDamage() * ImpulseScale( 75, 8 );
 	Vector vecForce = vecMeleeDir;
 	VectorNormalize( vecForce );
+	vecForce.z += 0.5f;
 	vecForce *= flForceScale;
 	vecForce *= phys_pushscale.GetFloat();
 	vecForce *= flScale;

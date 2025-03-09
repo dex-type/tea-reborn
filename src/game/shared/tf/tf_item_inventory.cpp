@@ -312,6 +312,9 @@ int	CTFInventoryManager::GetAllUsableItemsForSlot( int iClass, int iSlot, CUtlVe
 		CEconItemView *pItem = m_LocalInventory.GetItem(i);
 		CTFItemDefinition *pItemData = pItem->GetStaticData();
 
+		if (pItem->GetStyle() > 0)
+			continue;
+
 		if ( bIsAccountIndex != ( pItemData->GetEquipType() == EEquipType_t::EQUIP_TYPE_ACCOUNT ) )
 			continue;
 
@@ -326,7 +329,7 @@ int	CTFInventoryManager::GetAllUsableItemsForSlot( int iClass, int iSlot, CUtlVe
 		if ( IsUnacknowledged( pItem->GetInventoryPosition() ) )
 			continue;
 
-		pList->AddToTail( m_LocalInventory.GetItem(i) );
+		//pList->AddToTail( m_LocalInventory.GetItem(i) );
 	}
 
 	return pList->Count();

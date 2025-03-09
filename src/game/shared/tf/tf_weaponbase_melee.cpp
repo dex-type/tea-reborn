@@ -142,7 +142,7 @@ bool CTFWeaponBaseMelee::Holster( CBaseCombatWeapon *pSwitchingTo )
 	m_flSmackTime = -1.0f;
 	if ( GetPlayerOwner() )
 	{
-		GetPlayerOwner()->m_flNextAttack = gpGlobals->curtime + 0.5;
+		GetPlayerOwner()->m_flNextAttack = gpGlobals->curtime + 0.1;
 	}
 
 	CTFPlayer *pPlayer = GetTFPlayerOwner();

@@ -105,8 +105,7 @@ public:
 	virtual bool	CanInspect() const OVERRIDE;
 
 #ifdef GAME_DLL
-	virtual CDmgAccumulator	*GetDmgAccumulator( void ) { return &m_Accumulator; }
-	virtual float GetInitialAfterburnDuration() const OVERRIDE;
+	virtual CDmgAccumulator	*GetDmgAccumulator( void ) { return &m_Accumulator; };
 #endif // GAME_DLL
 
 #ifdef CLIENT_DLL

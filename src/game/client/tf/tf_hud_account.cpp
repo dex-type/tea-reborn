@@ -98,6 +98,7 @@ ConVar tf_dingaling_lasthit_pitchmaxdmg( "tf_dingaling_lasthit_pitchmaxdmg", "10
 ConVar tf_dingaling_lasthit_pitch_override( "tf_dingaling_lasthit_pitch_override", "-1", FCVAR_NONE, "If set, pitch for last hit sounds." );
 
 ConVar tf_dingalingaling_repeat_delay( "tf_dingalingaling_repeat_delay", "0.0", FCVAR_ARCHIVE, "Desired repeat delay of the hit sound.  Set to 0 to play a sound for every instance of damage dealt.", true, 0.f, false, 0.f );
+ConVar tf_dingalingaling_single_only( "tf_dingalingaling_single_only", "0", FCVAR_ARCHIVE, "if enabled, forces new hitsounds to interrupt previous ones.", true, 0, false, 1 );
 
 ConVar hud_damagemeter( "hud_damagemeter", "0", FCVAR_CHEAT, "Display damage-per-second information in the lower right corner of the screen." );
 ConVar hud_damagemeter_period( "hud_damagemeter_period", "0", FCVAR_NONE, "When set to zero, average damage-per-second across all recent damage events, otherwise average damage across defined period (number of seconds)." );
@@ -599,6 +600,8 @@ public:
 							EmitSound_t es( params );
 							es.m_nPitch = pHitSound->GetPitchFromDamage( iDamage, bLastHit );
 							es.m_flVolume = tf_dingaling_lasthit_volume.GetFloat();
+							if (tf_dingalingaling_single_only.GetBool())
+								pLocalPlayer->StopSound(pszSound);
 							pLocalPlayer->EmitSound( filter, pLocalPlayer->entindex(), es );
 						}
 					}
@@ -611,6 +614,8 @@ public:
 							EmitSound_t es( params );
 							es.m_nPitch = pHitSound->GetPitchFromDamage( iDamage, false );
 							es.m_flVolume = tf_dingaling_volume.GetFloat();
+							if (tf_dingalingaling_single_only.GetBool())
+								pLocalPlayer->StopSound(pszSound);
 							pLocalPlayer->EmitSound( filter, pLocalPlayer->entindex(), es );
 						}
 					}

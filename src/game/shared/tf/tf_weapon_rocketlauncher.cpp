@@ -76,6 +76,27 @@ END_DATADESC()
 
 //=============================================================================
 //
+// Firework Launcher tables.
+//
+IMPLEMENT_NETWORKCLASS_ALIASED( TFFireworkLauncher, DT_WeaponFireworkLauncher )
+
+BEGIN_NETWORK_TABLE( CTFFireworkLauncher, DT_WeaponFireworkLauncher )
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA( CTFFireworkLauncher )
+END_PREDICTION_DATA()
+
+LINK_ENTITY_TO_CLASS( tf_weapon_fireworklauncher, CTFFireworkLauncher );
+PRECACHE_WEAPON_REGISTER( tf_weapon_fireworklauncher );
+
+// Server specific.
+#ifndef CLIENT_DLL
+BEGIN_DATADESC( CTFFireworkLauncher )
+END_DATADESC()
+#endif
+
+//=============================================================================
+//
 // AIRSTRIKE BEGIN
 IMPLEMENT_NETWORKCLASS_ALIASED( TFRocketLauncher_AirStrike, DT_WeaponRocketLauncher_AirStrike )
 
@@ -146,6 +167,27 @@ PRECACHE_WEAPON_REGISTER( tf_weapon_crossbow );
 // Server specific.
 #ifndef CLIENT_DLL
 BEGIN_DATADESC( CTFCrossbow )
+END_DATADESC()
+#endif
+
+//=============================================================================
+//
+// Baseball Gun tables.
+//
+IMPLEMENT_NETWORKCLASS_ALIASED(TFBaseballGun, DT_WeaponBaseballGun)
+
+BEGIN_NETWORK_TABLE(CTFBaseballGun, DT_WeaponBaseballGun)
+END_NETWORK_TABLE()
+
+BEGIN_PREDICTION_DATA(CTFBaseballGun)
+END_PREDICTION_DATA()
+
+LINK_ENTITY_TO_CLASS(tf_weapon_baseballgun, CTFBaseballGun);
+PRECACHE_WEAPON_REGISTER(tf_weapon_baseballgun);
+
+// Server specific.
+#ifndef CLIENT_DLL
+BEGIN_DATADESC(CTFBaseballGun)
 END_DATADESC()
 #endif
 
@@ -399,6 +441,14 @@ int	CTFRocketLauncher::GetWeaponProjectileType( void ) const
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
+// CTFFireworkLauncher BEGIN
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+CTFFireworkLauncher::CTFFireworkLauncher()
+{
+	m_bReloadsSingly = false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
 // CTFRocketLauncher_AirStrike BEGIN
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 CTFRocketLauncher_AirStrike::CTFRocketLauncher_AirStrike()
@@ -638,7 +688,7 @@ void CTFRocketLauncher_Mortar::RedirectRockets( void )
 
 	trace_t tr;
 	UTIL_TraceLine( vecEye, vecEye + vecForward * MAX_TRACE_LENGTH, MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr );
-	float flVel = 1100.0f;
+	float flVel = 3000.0f;
 
 	FOR_EACH_VEC_BACK( m_vecRockets, i )
 	{
@@ -786,3 +836,122 @@ inline float CTFCrossbow::GetProgress( void )
 	return meltedTime / m_flRegenerateDuration;
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+// CTFBaseballGun BEGIN
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+CTFBaseballGun::CTFBaseballGun()
+{
+	m_bReloadsSingly = false;
+}
+
+#define TF_WEAPON_PIPEBOMB_LAUNCHER_CHARGE_SOUND	"Weapon_StickyBombLauncher.ChargeUp"
+
+void CTFBaseballGun::SecondaryAttack(void)
+{
+	if (m_iClip1 <= 0 && m_iClip1 != -1)
+		return;
+
+	// Are we capable of firing again?
+	if (m_flNextPrimaryAttack > gpGlobals->curtime)
+		return;
+
+	if (!CanAttack())
+	{
+		m_flChargeBeginTime = 0;
+		return;
+	}
+
+	if (m_flChargeBeginTime <= 0)
+	{
+		// Set the weapon mode.
+		m_iWeaponMode = TF_WEAPON_SECONDARY_MODE;
+
+		// save that we had the attack button down
+		m_flChargeBeginTime = gpGlobals->curtime;
+
+		SendWeaponAnim(ACT_VM_PULLBACK);
+
+#ifdef CLIENT_DLL
+		EmitSound(TF_WEAPON_PIPEBOMB_LAUNCHER_CHARGE_SOUND);
+#endif // CLIENT_DLL
+	}
+	else
+	{
+		float flTotalChargeTime = gpGlobals->curtime - m_flChargeBeginTime;
+
+		CTFPlayer* pPlayer = ToTFPlayer(GetPlayerOwner());
+		if (!pPlayer)
+			return;
+
+		if (flTotalChargeTime >= GetChargeMaxTime() || (pPlayer->m_afButtonReleased & IN_ATTACK2))
+		{
+			StopSound(TF_WEAPON_PIPEBOMB_LAUNCHER_CHARGE_SOUND);
+			m_bFireNowDumbass = false;
+			BaseClass::PrimaryAttack();
+			m_flChargeBeginTime = 0;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Reset the charge when we holster
+//-----------------------------------------------------------------------------
+bool CTFBaseballGun::Holster(CBaseCombatWeapon* pSwitchingTo)
+{
+#ifdef CLIENT_DLL
+	if (m_flChargeBeginTime > 0.f)
+	{
+		StopSound(TF_WEAPON_PIPEBOMB_LAUNCHER_CHARGE_SOUND);
+	}
+#endif
+	m_flChargeBeginTime = 0;
+
+	return BaseClass::Holster(pSwitchingTo);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Reset the charge when we deploy
+//-----------------------------------------------------------------------------
+bool CTFBaseballGun::Deploy(void)
+{
+	m_flChargeBeginTime = 0;
+
+	return BaseClass::Deploy();
+}
+
+void CTFBaseballGun::WeaponIdle(void)
+{
+	CTFPlayer* pPlayer = ToTFPlayer(GetPlayerOwner());
+	if (!pPlayer)
+		return;
+
+	if (m_flChargeBeginTime > 0)
+	{
+		SecondaryAttack();
+		return;
+	}
+
+	BaseClass::WeaponIdle();
+}
+
+void CTFBaseballGun::PrimaryAttack(void)
+{
+	m_flChargeBeginTime = 0;
+	StopSound(TF_WEAPON_PIPEBOMB_LAUNCHER_CHARGE_SOUND);
+	m_iWeaponMode = TF_WEAPON_PRIMARY_MODE;
+	BaseClass::PrimaryAttack();
+}
+
+#define TF_BASEBALLGUN_CHARGE_SPEED_MULTIPLIER 3.0f
+#define TF_BASEBALLGUN_PROJECTILE_SPEED 1000
+
+float CTFBaseballGun::GetProjectileSpeed(void)
+{
+	if (m_flChargeBeginTime > 0)
+		return RemapValClamped((gpGlobals->curtime - m_flChargeBeginTime),
+			0.0f,
+			GetChargeMaxTime(),
+			TF_BASEBALLGUN_PROJECTILE_SPEED,
+			TF_BASEBALLGUN_PROJECTILE_SPEED * TF_BASEBALLGUN_CHARGE_SPEED_MULTIPLIER);
+	return	TF_BASEBALLGUN_PROJECTILE_SPEED;
+}

@@ -11,6 +11,7 @@
 #endif
 
 #include "tf_weaponbase_gun.h"
+#include "array"
 
 #if defined( CLIENT_DLL )
 #define CTFShotgun C_TFShotgun
@@ -22,7 +23,9 @@
 #define CTFSodaPopper C_TFSodaPopper
 #define CTFPEPBrawlerBlaster C_TFPEPBrawlerBlaster
 #define CTFShotgunBuildingRescue C_TFShotgunBuildingRescue
-#define CTFLeech C_TFLeech
+#define CTFSpas C_TFSpas
+#define CTFDoubleBarrel C_TFDoubleBarrel
+#define CTFLeech C_TFLeech	// tf is this? i didnt add this, it was in the sdk from the start. tf kinda leeching shotgun were they cooking.
 #endif
 
 // Reload Modes
@@ -192,6 +195,35 @@ public:
 	virtual float	GetProjectileSpeed( void );
 	virtual float   GetProjectileGravity( void );
 	virtual bool	IsViewModelFlipped( void );
+};
+
+class CTFSpas : public CTFShotgun
+{
+public:
+	DECLARE_CLASS(CTFSpas, CTFShotgun);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual int		GetWeaponID(void) const { return TF_WEAPON_SPAS; }
+	virtual void	SecondaryAttack(void);
+};
+
+#define TF_DOUBLEBARREL_MAX_VICTIMS 8 // MP NOTE: there is no reasonably attainable reality where you hit eight different goddamn players with this weapon.
+
+class CTFDoubleBarrel : public CTFShotgun
+{
+public:
+	DECLARE_CLASS(CTFDoubleBarrel, CTFShotgun);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual int		GetWeaponID(void) const { return TF_WEAPON_DOUBLEBARREL; }
+	virtual void	FinishReload(void);
+
+	std::array<CBaseEntity*, TF_DOUBLEBARREL_MAX_VICTIMS> m_pDoubleBarrelVictims = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+	CTFDoubleBarrel();
+	virtual void	ApplyPostHitEffects(const CTakeDamageInfo& inputInfo, CTFPlayer* pPlayer);
+private:
 };
 
 #endif // TF_WEAPON_SHOTGUN_H

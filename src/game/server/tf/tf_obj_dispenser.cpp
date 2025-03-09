@@ -538,8 +538,16 @@ bool CObjectDispenser::DispenseAmmo( CTFPlayer *pPlayer )
 	}
 
 	// secondary
-	iAmmoToAdd = (int)( pPlayer->GetMaxAmmo( TF_AMMO_SECONDARY ) * flAmmoRate );
-	iTotalPickedUp += pPlayer->GiveAmmo( iAmmoToAdd, TF_AMMO_SECONDARY, !m_bPlayAmmoPickupSound, kAmmoSource_DispenserOrCart );
+	iAmmoToAdd = (int)(pPlayer->GetMaxAmmo(TF_AMMO_SECONDARY) * flAmmoRate);
+	iTotalPickedUp += pPlayer->GiveAmmo(iAmmoToAdd, TF_AMMO_SECONDARY, !m_bPlayAmmoPickupSound, kAmmoSource_DispenserOrCart);
+
+	// tertiary
+	iAmmoToAdd = (int)(pPlayer->GetMaxAmmo(TF_AMMO_TERTIARY) * flAmmoRate);
+	iTotalPickedUp += pPlayer->GiveAmmo(iAmmoToAdd, TF_AMMO_TERTIARY, !m_bPlayAmmoPickupSound, kAmmoSource_DispenserOrCart);
+
+	// quarary
+	iAmmoToAdd = (int)(pPlayer->GetMaxAmmo(TF_AMMO_QUARTARY) * flAmmoRate);
+	iTotalPickedUp += pPlayer->GiveAmmo(iAmmoToAdd, TF_AMMO_QUARTARY, !m_bPlayAmmoPickupSound, kAmmoSource_DispenserOrCart);
 
 	// metal
 	int iNoMetalFromDispenserWhileActive = 0;

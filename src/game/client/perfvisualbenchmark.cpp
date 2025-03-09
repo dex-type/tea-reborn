@@ -220,8 +220,8 @@ void CPerfVisualBenchmark::Start()
 	m_bWaiting = true;
 	m_bIsOn = true;									// showtime!
 	engine->ClientCmd_Unrestricted("cancelselect");				// exit menu and console
-//	engine->ClientCmd_Unrestricted("wait");				
-//	engine->ClientCmd_Unrestricted("setpause");					// pause the mofo
+	engine->ClientCmd_Unrestricted("wait");				
+	engine->ClientCmd_Unrestricted("setpause");					// pause the mofo
 	engine->ClientCmd_Unrestricted("host_timescale 0.0001");					// pause the mofo
 	
 }
@@ -235,7 +235,7 @@ void CPerfVisualBenchmark::Stop()
 	Print();
 	engine->ClientCmd_Unrestricted("host_timescale 0");					// pause the mofo
 //	engine->ClientCmd_Unrestricted("unpause");				// unpause the mofo
-//	engine->ClientCmd_Unrestricted("wait");				
+	engine->ClientCmd_Unrestricted("wait");				
 	engine->ClientCmd_Unrestricted("toggleconsole");
 }
 

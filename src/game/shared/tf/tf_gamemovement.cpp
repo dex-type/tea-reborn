@@ -82,7 +82,7 @@ extern ConVar cl_backspeed;
 extern ConVar cl_sidespeed;
 extern ConVar mp_tournament_readymode_countdown;
 
-#define TF_MAX_SPEED   (400 * 1.3)	// 400 is Scout max speed, and we allow up to 3% movement bonus.
+#define TF_MAX_SPEED   69420	// 400 is Scout max speed, and we allow up to 3% movement bonus.
 
 #define TF_WATERJUMP_FORWARD	30
 #define TF_WATERJUMP_UP			300
@@ -144,6 +144,7 @@ private:
 
 	bool		CheckWaterJumpButton( void );
 	void		AirDash( void );
+	float		GetJumpVel( float mult = 1 );
 	void		PreventBunnyJumping();
 	void		ToggleParachute( void );
 	void		CheckKartWallBumping();
@@ -991,19 +992,6 @@ bool CTFGameMovement::CheckWaterJumpButton( void )
 //-----------------------------------------------------------------------------
 void CTFGameMovement::AirDash( void )
 {
-	// Apply approx. the jump velocity added to an air dash.
-	Assert( GetCurrentGravity() == 800.0f );
-
-	float flJumpMod = 1.f;
-	// Passive version
-	CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( m_pTFPlayer, flJumpMod, mod_jump_height );
-	// Weapon-restricted version
-	CTFWeaponBase *pWpn = m_pTFPlayer->GetActiveTFWeapon();
-	if ( pWpn )
-	{
-		CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pWpn, flJumpMod, mod_jump_height_from_weapon );
-	}
-
 	// Lose hype on airdash
 	int iHypeResetsOnJump = 0;
 	CALL_ATTRIB_HOOK_INT_ON_OTHER( m_pTFPlayer, iHypeResetsOnJump, hype_resets_on_jump );
@@ -1015,12 +1003,7 @@ void CTFGameMovement::AirDash( void )
 		m_pTFPlayer->TeamFortress_SetSpeed();
 	}
 
-	if ( m_pTFPlayer->m_Shared.GetCarryingRuneType() == RUNE_AGILITY )
-	{
-		flJumpMod *= 1.8f;
-	}
-
-  	float flDashZ = 268.3281572999747f * flJumpMod;
+  	float flDashZ = GetJumpVel();
 
 	// Get the wish direction.
 	Vector vecForward, vecRight;
@@ -1038,10 +1021,13 @@ void CTFGameMovement::AirDash( void )
 	Vector vecWishDirection( ( ( vecForward.x * flForwardMove ) + ( vecRight.x * flSideMove ) ),
 		                     ( ( vecForward.y * flForwardMove ) + ( vecRight.y * flSideMove ) ), 
 		                     0.0f );
+	vecWishDirection /= mv->m_flMaxSpeed;
+	vecWishDirection *= mv->m_vecVelocity.Length();
 	
 	// Update the velocity on the scout.
-	mv->m_vecVelocity = vecWishDirection;
-	mv->m_vecVelocity.z += flDashZ;
+	if (!vecWishDirection.IsZero())
+		mv->m_vecVelocity = vecWishDirection;
+	mv->m_vecVelocity.z = flDashZ;
 
 	int iAirDash = m_pTFPlayer->m_Shared.GetAirDash();
 	if ( iAirDash == 0 )
@@ -1083,6 +1069,25 @@ void CTFGameMovement::AirDash( void )
 #endif // GAME_DLL
 }
 
+float CTFGameMovement::GetJumpVel( float mult ) {
+	float flHeight = 60 * mult;
+	// Passive version
+	CALL_ATTRIB_HOOK_FLOAT_ON_OTHER(m_pTFPlayer, flHeight, mod_jump_height);
+	// Weapon-restricted version
+	CTFWeaponBase* pWpn = m_pTFPlayer->GetActiveTFWeapon();
+	if (pWpn)
+	{
+		CALL_ATTRIB_HOOK_FLOAT_ON_OTHER(pWpn, flHeight, mod_jump_height_from_weapon);
+	}
+
+	if (m_pTFPlayer->m_Shared.GetCarryingRuneType() == RUNE_AGILITY)
+	{
+		flHeight *= 1.8f;
+	}
+
+	return sqrt(2.0f * GetCurrentGravity() * flHeight);
+}
+
 // Only allow bunny jumping up to 1.2x server / player maxspeed setting
 #define BUNNYJUMP_MAX_SPEED_FACTOR 1.2f
 
@@ -1105,7 +1110,7 @@ void CTFGameMovement::PreventBunnyJumping()
 		return;
 
 	// Apply this cropping fraction to velocity
-	float fraction = ( maxscaledspeed / spd );
+	float fraction = ( maxscaledspeed / ((spd - maxscaledspeed) * tea_bhop_dampen.GetFloat() + maxscaledspeed));
 
 
 	mv->m_vecVelocity *= fraction;
@@ -1216,38 +1221,28 @@ bool CTFGameMovement::CheckJumpButton()
 		return false;
 
 	// Check to see if the player is a scout.
-	bool bScout = m_pTFPlayer->GetPlayerClass()->IsClass( TF_CLASS_SCOUT );
+	//bool bScout = m_pTFPlayer->GetPlayerClass()->IsClass( TF_CLASS_SCOUT );
 	bool bAirDash = false;
 	bool bOnGround = ( player->GetGroundEntity() != NULL );
 
 	ToggleParachute();
 
 	// Cannot jump will ducked.
-	if ( player->GetFlags() & FL_DUCKING )
+	if ( player->GetFlags() & FL_DUCKING && !bOnGround)
 	{
-		// Let a scout do it.
-		bool bAllow = ( bScout && !bOnGround );
-
-		if ( !bAllow )
-			return false;
+		return false;
 	}
 
-	// Cannot jump while in the unduck transition.
-	if ( ( player->m_Local.m_bDucking && (  player->GetFlags() & FL_DUCKING ) ) || ( player->m_Local.m_flDuckJumpTime > 0.0f ) )
-		return false;
-
-	// Cannot jump again until the jump button has been released.
-	if ( mv->m_nOldButtons & IN_JUMP )
-		return false;
 
 	// In air, so ignore jumps 
 	// (unless you are a scout or ghost or parachute
 	if ( !bOnGround )
 	{
+		// Cannot jump again until the jump button has been released.
+		if (mv->m_nOldButtons & IN_JUMP)
+			return false;
 		if ( m_pTFPlayer->CanAirDash() )
-		{
 			bAirDash = true;
-		}
 		else
 		{
 			mv->m_nOldButtons |= IN_JUMP;
@@ -1285,24 +1280,6 @@ bool CTFGameMovement::CheckJumpButton()
 	{
 		flGroundFactor = player->m_pSurfaceData->game.jumpFactor; 
 	}
-
-	// fMul = sqrt( 2.0 * gravity * jump_height (21.0units) ) * GroundFactor
-	Assert( GetCurrentGravity() == 800.0f );
-
-	float flJumpMod = 1.f;
-	//if ( m_pTFPlayer->m_Shared.InCond( TF_COND_HALLOWEEN_KART ) )
-	//{
-	//	flJumpMod *= 1.3f;
-	//}
-
-	// Passive version
-	CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( m_pTFPlayer, flJumpMod, mod_jump_height );
-	// Weapon-restricted version
-	CTFWeaponBase *pWpn = m_pTFPlayer->GetActiveTFWeapon();
-	if ( pWpn )
-	{
-		CALL_ATTRIB_HOOK_FLOAT_ON_OTHER( pWpn, flJumpMod, mod_jump_height_from_weapon );
-	}
 /*
 #ifdef STAGING_ONLY
 	if ( m_pTFPlayer->m_Shared.InCond( TF_COND_SPACE_GRAVITY ) )
@@ -1312,12 +1289,8 @@ bool CTFGameMovement::CheckJumpButton()
 	
 #endif // STAGING_ONLY
 */
-	if ( m_pTFPlayer->m_Shared.GetCarryingRuneType() == RUNE_AGILITY )
-	{
-		flJumpMod *= 1.8f;
-	}
 	
-	float flMul = ( 289.0f * flJumpMod ) * flGroundFactor;
+	float flMul = GetJumpVel(flGroundFactor);
 
 	// Save the current z velocity.
 	float flStartZ = mv->m_vecVelocity[2];
@@ -2059,7 +2032,7 @@ float CTFGameMovement::GetAirSpeedCap( void )
 	}
 	else
 	{
-		float flCap = BaseClass::GetAirSpeedCap();
+		float flCap = mv->m_flMaxSpeed;
 
 /*
 #ifdef STAGING_ONLY
@@ -2155,10 +2128,12 @@ void CTFGameMovement::AirMove( void )
 	}
 
 	float flAirAccel = sv_airaccelerate.GetFloat();
+	float flQ3Accel = sv_q3accelerate.GetFloat();
 	float flWallSlideCoeff = 0.f;
 	if ( m_pTFPlayer->m_Shared.InCond( TF_COND_AIR_CURRENT ) )
 	{
 		flAirAccel *= tf_movement_aircurrent_aircontrol_mult.GetFloat();
+		flQ3Accel *= tf_movement_aircurrent_aircontrol_mult.GetFloat();
 		flWallSlideCoeff = Clamp( 1.f - tf_movement_aircurrent_friction_mult.GetFloat(), 0.f, 1.f );
 	}
 /*
@@ -2169,7 +2144,8 @@ void CTFGameMovement::AirMove( void )
 	}
 #endif
 */
-	AirAccelerate( wishdir, wishspeed, flAirAccel );
+	AirAccelerate( wishdir, wishspeed, flQ3Accel, mv->m_flMaxSpeed );
+	AirAccelerate( wishdir, wishspeed, flAirAccel, mv->m_flMaxSpeed * 0.15f );
 
 	float flForwardPull = m_pTFPlayer->GetMovementForwardPull();
 

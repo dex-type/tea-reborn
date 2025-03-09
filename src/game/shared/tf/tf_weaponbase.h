@@ -527,6 +527,7 @@ class CTFWeaponBase : public CBaseCombatWeapon, public IHasOwner, public IHasGen
 	virtual CBaseEntity* Respawn();
 	void Materialize();
 	void AttemptToMaterialize();
+	virtual float GetInitialAfterburnDuration();
 
 	// Death.
 	void Die( void );
@@ -552,7 +553,6 @@ class CTFWeaponBase : public CBaseCombatWeapon, public IHasOwner, public IHasGen
 	float			GetClipScale () const { return m_flClipScale; }
 	void			SetClipScale ( float flScale ) { m_flClipScale = flScale; }
 
-	virtual float	GetInitialAfterburnDuration() const { return 0.f; }
 	virtual float	GetAfterburnRateOnHit() const { return 0.f; }
 
 // Client specific.
@@ -647,6 +647,7 @@ class CTFWeaponBase : public CBaseCombatWeapon, public IHasOwner, public IHasGen
 #endif
 
 	virtual bool ShouldRemoveInvisibilityOnPrimaryAttack() const { return true; }
+	int GetWeaponMode() { return m_iWeaponMode; }
 
 protected:
 	virtual int		GetEffectBarAmmo( void ) { return m_iPrimaryAmmoType; }

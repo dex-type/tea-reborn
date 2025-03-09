@@ -521,7 +521,9 @@ const char *g_aAmmoNames[] =
 	"TF_AMMO_METAL",
 	"TF_AMMO_GRENADES1",
 	"TF_AMMO_GRENADES2",
-	"TF_AMMO_GRENADES3"
+	"TF_AMMO_GRENADES3",
+	"TF_AMMO_TERTIARY",
+	"TF_AMMO_QUARTARY"
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_aAmmoNames ) == TF_AMMO_COUNT );
 
@@ -708,6 +710,12 @@ const char *g_aWeaponNames[] =
 	"TF_WEAPON_JAR_GAS",
 	"TF_WEAPON_GRENADE_JAR_GAS",
 	"TF_WEPON_FLAME_BALL",
+	"TF_WEAPON_FIREWORKLAUNCHER",
+	"TF_WEAPON_SPAS",
+	"TF_WEAPON_DOUBLEBARREL",
+	"TF_WEAPON_BASEBALLGUN",
+	"TF_WEAPON_GRENADESHOTGUN",
+	"TF_WEAPON_RIFLE",
 
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_aWeaponNames ) == TF_WEAPON_COUNT );
@@ -824,6 +832,12 @@ int g_aWeaponDamageTypes[] =
 	DMG_GENERIC, // TF_WEAPON_JAR_GAS
 	DMG_GENERIC, // TF_WEAPON_GRENADE_JAR_GAS
 	DMG_GENERIC | DMG_PREVENT_PHYSICS_FORCE, // TF_WEAPON_FLAME_BALL
+	DMG_BURN | DMG_BLAST | DMG_HALF_FALLOFF | DMG_USEDISTANCEMOD,		// TF_WEAPON_FIREWORKLAUNCHER,
+	DMG_BUCKSHOT | DMG_USEDISTANCEMOD,	// TF_WEAPON_SPAS,
+	DMG_BUCKSHOT | DMG_USEDISTANCEMOD,	// TF_WEAPON_DOUBLEBARREL,
+	DMG_CLUB,	// TF_WEAPON_BASEBALLGUN,	//the reason this does club damage is that its supposed to me like a bunch of raw force hitting you, tho maybe bullet or a slug dmgtype would be better.
+	DMG_BLAST | DMG_USEDISTANCEMOD,		// TF_WEAPON_GRENADESHOTGUN,
+	DMG_BULLET | DMG_USEDISTANCEMOD,		// TF_WEAPON_RIFLE,
 
 };
 
@@ -972,6 +986,8 @@ const char *g_szProjectileNames[] =
 	"projectile_bread_monster",
 	"projectile_jar_gas",
 	"tf_projectile_balloffire",
+	"projectile_bouncyrocket",
+	"projectile_pipe_shotgun",
 
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_szProjectileNames ) == TF_NUM_PROJECTILES );
@@ -1010,6 +1026,8 @@ int g_iProjectileWeapons[] =
 	TF_WEAPON_THROWABLE,
 	TF_WEAPON_JAR_GAS,
 	TF_WEAPON_FLAME_BALL,
+	TF_WEAPON_BASEBALLGUN,		//im not sure im interpreting this right
+	TF_WEAPON_GRENADESHOTGUN,
 
 };
 

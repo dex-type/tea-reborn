@@ -138,6 +138,9 @@ int CTFGrenadePipebombProjectile::GetWeaponID( void ) const
 	{
 		return TF_WEAPON_CANNON;
 	}
+	else if (m_iType == TF_GL_MODE_SHOTGUN) {
+		return TF_WEAPON_GRENADESHOTGUN;
+	}
 
 	return ( HasStickyEffects() ? TF_WEAPON_GRENADE_PIPEBOMB : TF_WEAPON_GRENADE_DEMOMAN );
 }
@@ -156,6 +159,12 @@ int	CTFGrenadePipebombProjectile::GetDamageType( void )
 		{
 			iDmgType |= DMG_USEDISTANCEMOD;
 		}
+	}
+
+	// If we're a pipebomb, we do distance based damage falloff all the time lol
+	if ( m_iType == TF_GL_MODE_SHOTGUN )
+	{
+		iDmgType |= DMG_USEDISTANCEMOD;
 	}
 
 	return iDmgType;
@@ -397,7 +406,7 @@ int CTFGrenadePipebombProjectile::DrawModel( int flags )
 #define TF_WEAPON_PIPEBOMBD_MODEL		"models/weapons/w_models/w_stickybomb_d.mdl"
 #define TF_WEAPON_PIPEBOMB_BOUNCE_SOUND	"Weapon_Grenade_Pipebomb.Bounce"
 #define TF_WEAPON_CANNON_IMPACT_SOUND	"Weapon_LooseCannon.BallImpact"
-#define TF_WEAPON_GRENADE_DETONATE_TIME		2.0f
+#define TF_WEAPON_GRENADE_DETONATE_TIME		1.0f
 #define TF_WEAPON_GRENADE_XBOX_DAMAGE 112
 
 BEGIN_DATADESC( CTFGrenadePipebombProjectile )
@@ -451,6 +460,11 @@ CTFGrenadePipebombProjectile* CTFGrenadePipebombProjectile::Create( const Vector
 	case TF_PROJECTILE_CANNONBALL:
 		{
 			iPipeBombDetonateType = TF_GL_MODE_CANNONBALL;
+		}
+		break;
+	case TF_PROJECTILE_GRENADESHOTGUN:
+		{
+			iPipeBombDetonateType = TF_GL_MODE_SHOTGUN;
 		}
 		break;
 	default:
@@ -862,8 +876,12 @@ void CTFGrenadePipebombProjectile::VPhysicsCollision( int index, gamevcollisione
 		Detonate();
 		return;
 	}
+	else if (m_iType == TF_GL_MODE_SHOTGUN) {
+		SetThink(&CTFGrenadePipebombProjectile::Detonate);
+		SetNextThink(gpGlobals->curtime);
+	}
 
-	if ( m_iType == TF_GL_MODE_REGULAR || m_iType == TF_GL_MODE_CANNONBALL )
+	if ( m_iType == TF_GL_MODE_REGULAR || m_iType == TF_GL_MODE_CANNONBALL || m_iType == TF_GL_MODE_SHOTGUN )
 	{
 		if ( PropDynamic_CollidesWithGrenades( pHitEntity) )
 		{

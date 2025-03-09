@@ -31,6 +31,8 @@ BEGIN_DATADESC(CTriggerAreaCapture)
 	// Keyfields
 	DEFINE_KEYFIELD( m_iszCapPointName,	FIELD_STRING,	"area_cap_point" ),
 	DEFINE_KEYFIELD( m_flCapTime,		FIELD_FLOAT,	"area_time_to_cap" ),
+	DEFINE_KEYFIELD( m_flUnCapTime,		FIELD_FLOAT,	"area_time_to_uncap" ),
+	DEFINE_KEYFIELD( m_bCanBlock,		FIELD_BOOLEAN,	"area_can_block" ),
 
 //	DEFINE_FIELD( m_iCapMode, FIELD_INTEGER ),
 //	DEFINE_FIELD( m_bCapturing, FIELD_BOOLEAN ),
@@ -479,7 +481,7 @@ void CTriggerAreaCapture::CaptureThink( void )
 		m_flLastReductionTime = gpGlobals->curtime;
 
 		//if more than one team is in the zone
-		if( iTeamsInZone > 1 )
+		if( iTeamsInZone > 1 && m_bCanBlock )
 		{
 			if ( !m_bBlocked )
 			{
@@ -580,6 +582,8 @@ void CTriggerAreaCapture::CaptureThink( void )
 			if ( TeamplayRoundBasedRules() && m_hPoint && TeamplayRoundBasedRules()->TeamMayCapturePoint(m_nCapturingTeam,m_hPoint->GetPointIndex()) )
 			{
 				float flDecreaseScale = CaptureModeScalesWithPlayers() ? mp_capdeteriorate_time.GetFloat() : flTotalTimeToCap;
+				flDecreaseScale /= mp_capdeteriorate_time.GetFloat();
+				flDecreaseScale *= m_flUnCapTime;
 				float flDecrease = (flTotalTimeToCap / flDecreaseScale) * flTimeDelta;
 				if ( TeamplayRoundBasedRules() && TeamplayRoundBasedRules()->InOvertime() )
 				{

@@ -36,6 +36,8 @@ CREATE_SIMPLE_WEAPON_TABLE( TFShotgun_Revenge, tf_weapon_sentry_revenge )
 CREATE_SIMPLE_WEAPON_TABLE( TFSodaPopper, tf_weapon_soda_popper )
 CREATE_SIMPLE_WEAPON_TABLE( TFPEPBrawlerBlaster, tf_weapon_pep_brawler_blaster )
 CREATE_SIMPLE_WEAPON_TABLE( TFShotgunBuildingRescue, tf_weapon_shotgun_building_rescue )
+CREATE_SIMPLE_WEAPON_TABLE( TFSpas, tf_weapon_spas )
+CREATE_SIMPLE_WEAPON_TABLE( TFDoubleBarrel, tf_weapon_doublebarrel )
 
 #define SCATTERGUN_KNOCKBACK_MIN_DMG		30.0f
 #define SCATTERGUN_KNOCKBACK_MIN_RANGE_SQ	160000.0f //400x400
@@ -576,4 +578,77 @@ float CTFShotgunBuildingRescue::GetProjectileGravity( void )
 bool CTFShotgunBuildingRescue::IsViewModelFlipped( void )
 {
 	return !BaseClass::IsViewModelFlipped(); // Invert because arrows are backwards by default.
+}
+//-----------------------------------------------------------------------------
+// CTFSpas
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// Purpose: We need to make the secondary attack route back to the primary attack, without the weapon mode being overidden back to primary.
+//-----------------------------------------------------------------------------
+void CTFSpas::SecondaryAttack()
+{
+	if (!CanAttack())
+		return;
+	m_iWeaponMode = TF_WEAPON_SECONDARY_MODE;
+	BaseClass::BaseClass::PrimaryAttack();
+}
+//-----------------------------------------------------------------------------
+// CTFDoubleBarrel
+//-----------------------------------------------------------------------------
+CTFDoubleBarrel::CTFDoubleBarrel()
+{
+	m_bReloadsSingly = false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Wipe the list of victims
+//-----------------------------------------------------------------------------
+void CTFDoubleBarrel::FinishReload(void)
+{
+	BaseClass::FinishReload();
+	for (int i = 0; i < m_pDoubleBarrelVictims.size(); i++) {
+		m_pDoubleBarrelVictims[i] = nullptr;
+	}
+}
+
+#define TF_DOUBLEBARREL_MIN_KNOCKBACK_DMG 100.0f
+#define TF_DOUBLEBARREL_MAX_KNOCKBACK_DISTANCE 80.0f
+#define CLOSEST_POSSIBLE_DISTANCE_TO_PLAYER 48.0f
+
+//-----------------------------------------------------------------------------
+// Purpose: Knockback on close quarters kill
+//-----------------------------------------------------------------------------
+void CTFDoubleBarrel::ApplyPostHitEffects(const CTakeDamageInfo& inputInfo, CTFPlayer* pPlayer)
+{
+#ifndef CLIENT_DLL
+
+	CTFPlayer* pAttacker = ToTFPlayer(inputInfo.GetAttacker());
+	if (!pAttacker)
+		return;
+
+	CTFPlayer* pTarget = pPlayer;
+	if (!pTarget)
+		return;
+
+	if (pAttacker && pTarget)
+	{
+		Vector vecEnemy = pTarget->GetAbsOrigin();
+		Vector vecAttacker = pAttacker->GetAbsOrigin();
+		Vector vecDir = vecEnemy - vecAttacker;
+		float flDist = vecDir.Length() - CLOSEST_POSSIBLE_DISTANCE_TO_PLAYER;
+		vecDir = vecDir.Normalized();
+		float flDamage = inputInfo.GetDamage();
+		Msg("distance is %f\n", flDist);
+		Msg("damage is %f\n", flDamage);
+		if (flDist <= TF_DOUBLEBARREL_MAX_KNOCKBACK_DISTANCE && flDamage >= TF_DOUBLEBARREL_MIN_KNOCKBACK_DMG) {
+			if (pAttacker->GetFlags() & FL_DUCKING) {
+				flDamage = 130;
+				flDist = max(flDist - 20,0);
+			}
+			vecDir = inputInfo.GetDamageForce().Normalized();
+			pAttacker->ApplyAbsVelocityImpulse(vecDir * flDamage * (1 - flDist / TF_DOUBLEBARREL_MAX_KNOCKBACK_DISTANCE) * -3);
+		}
+	}
+#endif
 }

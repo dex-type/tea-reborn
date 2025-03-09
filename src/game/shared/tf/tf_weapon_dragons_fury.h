@@ -56,7 +56,7 @@ public:
 	virtual float	GetMeterMultiplier() const OVERRIDE;
 
 #ifdef GAME_DLL
-	virtual float GetInitialAfterburnDuration() const OVERRIDE { return 0.f; }
+	virtual float GetInitialAfterburnDuration() { return 0.f; }
 	void RefundAmmo( int nAmmo );
 #else
 	virtual void	OnDataChanged( DataUpdateType_t updateType ) OVERRIDE;

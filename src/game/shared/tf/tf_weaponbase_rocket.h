@@ -102,12 +102,14 @@ public:
 
 	virtual bool	ShouldNotDetonate( void );
 	virtual void	Destroy( bool bBlinkOut = true, bool bBreakRocket = false ) OVERRIDE;
+	virtual void	Think();
 
 	virtual float	GetDamage() { return m_flDamage; }
 	virtual int		GetDamageType() { return g_aWeaponDamageTypes[ GetWeaponID() ]; }
 	virtual int		GetDamageCustom() { return TF_DMG_CUSTOM_NONE; }
 	virtual void	SetDamage(float flDamage) { m_flDamage = flDamage; }
 	virtual float	GetRadius();
+	virtual int		GetSpeedCustom() { return 3000; }
 
 	virtual void	SetDamageForceScale( float flScale ) {  m_flDamageForceScale = flScale; }
 	virtual float	GetDamageForceScale() { return m_flDamageForceScale; }
@@ -135,6 +137,7 @@ protected:
 	CNetworkHandle( CBaseEntity, m_hLauncher );
 
 	float					m_flDestroyableTime;
+	float					m_flDeathTime;
 	bool					m_bCritical;
 	bool					m_bStunOnImpact;
 
